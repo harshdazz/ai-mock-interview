@@ -113,7 +113,11 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
       } catch (error) {
       console.error("Failed to create interview", error);
       toast.error(
-        error instanceof AiError ? "Could not generate questions" : "Something went wrong",
+        error instanceof AiError
+          ? error.kind === "rate_limited"
+            ? "Daily API limit reached"
+            : "Could not generate questions"
+          : "Something went wrong",
         {
           description:
             error instanceof AiError

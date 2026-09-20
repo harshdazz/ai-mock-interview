@@ -71,9 +71,11 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
         console.error("Failed to generate feedback", error);
         setAiResult(null);
         toast.error(
-          error instanceof AiError && error.retryable
-            ? "Model is busy"
-            : "Could not grade that answer",
+          error instanceof AiError && error.kind === "rate_limited"
+            ? "Daily API limit reached"
+            : error instanceof AiError && error.retryable
+              ? "Model is busy"
+              : "Could not grade that answer",
           {
             description:
               error instanceof AiError

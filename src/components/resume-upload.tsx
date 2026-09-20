@@ -42,7 +42,10 @@ export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) =
       console.error("Failed to read CV", error);
       onChange(null);
       setFileName(null);
-      toast.error("Could not read that CV", {
+      toast.error(
+        error instanceof AiError && error.kind === "rate_limited"
+          ? "Daily API limit reached"
+          : "Could not read that CV", {
         description:
           error instanceof AiError
             ? error.message

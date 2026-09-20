@@ -14,61 +14,93 @@ const ai = new GoogleGenAI({ apiKey });
 /**
  * Model preference order, measured against a free-tier key rather than assumed.
  *
- * The newest flash models load-shed aggressively: across repeated trials
- * gemini-3.6-flash returned 503 on every attempt and gemini-3.8-flash on two
- * of three, while gemini-3.5-flash succeeded every time. So the reliable model
- * leads and the newer ones are fallbacks, not the other way round. Re-measure
- * before reordering; availability moves.
+ * Two independent failure modes matter here, and they are not the same thing:
+ *
+ *   429 RESOURCE_EXHAUSTED - the free tier allows 20 requests per model per
+ *   day. Once a model is spent it stays spent, so retrying it inside one
+ *   request is pure waste. The quota is per model, which is exactly why this
+ *   chain exists: falling through to the next model buys another 20.
+ *
+ *   503 UNAVAILABLE - transient load shedding. Worth one retry on the same
+ *   model before moving on.
+ *
+ * Availability moves; re-measure before reordering. gemini-3.5-flash-lite is
+ * deliberately absent: it rejects this request shape with a 400.
  */
-const MODEL_CHAIN = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-3.6-flash"] as const;
+const MODEL_CHAIN = [
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.8-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
+] as const;
 
-const MAX_ATTEMPTS_PER_MODEL = 2;
-const BASE_BACKOFF_MS = 600;
+const RETRIES_ON_OVERLOAD = 1;
+const BASE_BACKOFF_MS = 800;
 
 export type AiFailureKind =
-  | "overloaded"  // 503/429: transient, worth retrying
-  | "auth"        // 400/401/403: bad or restricted key, retrying will not help
-  | "malformed"   // response did not match the schema
+  | "overloaded" // 503: transient, worth retrying
+  | "rate_limited" // 429: daily quota spent on every model
+  | "auth" // 400/401/403: bad or restricted key
+  | "malformed" // response did not match the schema
   | "unknown";
 
 export class AiError extends Error {
   readonly kind: AiFailureKind;
   readonly retryable: boolean;
+  /** Seconds until the quota window reopens, when the API told us. */
+  readonly retryAfterSeconds?: number;
 
-  constructor(kind: AiFailureKind, message: string) {
+  constructor(kind: AiFailureKind, message: string, retryAfterSeconds?: number) {
     super(message);
     this.name = "AiError";
     this.kind = kind;
-    this.retryable = kind === "overloaded";
+    this.retryable = kind === "overloaded" || kind === "rate_limited";
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
-const statusOf = (error: unknown): number | undefined => {
-  const raw = error instanceof Error ? error.message : String(error);
-  return Number(raw.match(/"code"\s*:\s*(\d+)/)?.[1]) || undefined;
+const rawOf = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+const statusOf = (error: unknown): number | undefined =>
+  Number(rawOf(error).match(/"code"\s*:\s*(\d+)/)?.[1]) || undefined;
+
+/** Gemini returns a RetryInfo detail such as {"retryDelay":"48s"}. */
+const retryAfterOf = (error: unknown): number | undefined => {
+  const raw = rawOf(error);
+  const fromDetail = raw.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/)?.[1];
+  if (fromDetail) return Math.ceil(Number(fromDetail));
+  const fromText = raw.match(/retry in (\d+(?:\.\d+)?)s/i)?.[1];
+  return fromText ? Math.ceil(Number(fromText)) : undefined;
 };
 
 const classify = (error: unknown): AiFailureKind => {
   const status = statusOf(error);
-  if (status === 503 || status === 429) return "overloaded";
-  if (status === 400 || status === 401 || status === 403) return "auth";
+  if (status === 429) return "rate_limited";
+  if (status === 503 || status === 500 || status === 502) return "overloaded";
+  if (status === 401 || status === 403) return "auth";
   return "unknown";
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const formatWait = (seconds?: number) => {
+  if (!seconds) return "";
+  if (seconds < 90) return ` Try again in about ${seconds} seconds.`;
+  return ` Try again in about ${Math.ceil(seconds / 60)} minutes.`;
+};
 
 /**
  * Runs a JSON-schema-constrained generation against the model chain.
  *
  * Structured output is what makes this safe: the API is told the exact shape to
  * return, so there is no markdown fence to strip and no JSON array to find with
- * a regex. The previous implementation did both, and its cleanup pass stripped
- * every literal occurrence of "json" from the payload including inside the text
- * the user reads.
+ * a regex.
  *
- * Each call is independent. The old module-level startChat() meant one chat
- * history was shared by every question in a session, so feedback for question
- * five was produced with questions one to four still in context.
+ * Each call is independent. A module-level startChat() would share one history
+ * across every question in a session, so feedback for question five would be
+ * produced with questions one to four still in context.
  */
 export async function generateFromParts<T>({
   parts,
@@ -84,10 +116,12 @@ export async function generateFromParts<T>({
   thinkingBudget?: number;
   signal?: AbortSignal;
 }): Promise<T> {
+  let sawRateLimit = false;
+  let soonestRetry: number | undefined;
   let lastError: unknown;
 
   for (const model of MODEL_CHAIN) {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
+    for (let attempt = 0; attempt <= RETRIES_ON_OVERLOAD; attempt++) {
       if (signal?.aborted) throw new AiError("unknown", "Request cancelled");
 
       try {
@@ -114,32 +148,57 @@ export async function generateFromParts<T>({
         lastError = error;
 
         if (error instanceof AiError && error.kind === "malformed") {
-          // A schema violation will not fix itself on the same model; move on.
-          break;
+          break; // a schema violation will not fix itself on the same model
         }
 
         const kind = classify(error);
+
         if (kind === "auth") {
           throw new AiError(
             "auth",
             "The Gemini API key was rejected. Check VITE_GEMINI_API_KEY and any referrer restrictions on it."
           );
         }
-        if (kind === "overloaded" && attempt < MAX_ATTEMPTS_PER_MODEL) {
-          await sleep(BASE_BACKOFF_MS * 2 ** (attempt - 1));
+
+        if (kind === "rate_limited") {
+          // This model's daily allowance is gone. Retrying it now would only
+          // spend more of the budget on a guaranteed failure.
+          sawRateLimit = true;
+          const after = retryAfterOf(error);
+          if (after && (soonestRetry === undefined || after < soonestRetry)) {
+            soonestRetry = after;
+          }
+          break;
+        }
+
+        if (kind === "overloaded" && attempt < RETRIES_ON_OVERLOAD) {
+          await sleep(BASE_BACKOFF_MS * 2 ** attempt);
           continue;
         }
-        break; // try the next model
+
+        break; // move to the next model
       }
     }
+  }
+
+  if (sawRateLimit) {
+    throw new AiError(
+      "rate_limited",
+      `The Gemini free tier allows 20 requests per model per day, and every model in the fallback chain is now spent.${formatWait(
+        soonestRetry
+      )} Enabling billing on the API key removes this limit.`,
+      soonestRetry
+    );
   }
 
   const kind = classify(lastError);
   throw new AiError(
     kind,
     kind === "overloaded"
-      ? "Every available model is busy right now. Wait a moment and try again."
-      : `Could not reach the model. ${lastError instanceof Error ? lastError.message.slice(0, 160) : ""}`
+      ? "Every available model is busy right now. This usually clears within a minute."
+      : `Could not reach the model. ${
+          lastError instanceof Error ? lastError.message.slice(0, 160) : ""
+        }`
   );
 }
 
