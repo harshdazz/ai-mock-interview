@@ -39,7 +39,7 @@ const Dashboard = () => {
         setLoading(false);
       },
       (error) => {
-        console.log("Error on fetching : ", error);
+        console.error("Failed to fetch interviews", error);
         toast.error("Error..", {
           description: "SOmething went wrong.. Try again later..",
         });

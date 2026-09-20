@@ -13,6 +13,7 @@ import CreateEditPage from './Routes/create-edit-page'
 import MockLoadPage from './Routes/mock-load-page'
 import MockInterviewPage from './Routes/mock-interview-page'
 import { Feedback } from './Routes/feedback'
+import NotFoundPage from './Routes/not-found'
 const App = () => {
   return (
     <Router>
@@ -20,6 +21,7 @@ const App = () => {
         {/* public routes */}
         <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
+        <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         {/* authentication layout */}
@@ -45,4 +47,3 @@ const App = () => {
 }
 
 export default App
-// change 1

@@ -18,7 +18,7 @@ export interface Interview {
   techStack: string;
   questions: { question: string; answer: string }[];
   createdAt: Timestamp;
-  updateAt: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface UserAnswer {
@@ -31,5 +31,5 @@ export interface UserAnswer {
   rating: number;
   userId: string;
   createdAt: Timestamp;
-  updateAt: Timestamp;
+  updatedAt?: Timestamp;
 }

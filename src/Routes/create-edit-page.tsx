@@ -18,7 +18,7 @@ const CreateEditPage = () => {
                     setInterview({id: interviewDoc.id,...interviewDoc.data()} as Interview)
                 }   
              } catch (error) {
-                console.log(error)
+                console.error(error)
                 
              }
             }

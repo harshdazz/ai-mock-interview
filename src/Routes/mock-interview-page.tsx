@@ -30,7 +30,7 @@ const { interviewId } = useParams<{ interviewId: string }>();
             } as Interview);
           }
         } catch (error) {
-          console.log(error);
+          console.error(error);
         } finally {
           setIsLoading(false);
         }

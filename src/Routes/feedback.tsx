@@ -53,7 +53,7 @@ export const Feedback = () => {
               } as Interview);
             }
           } catch (error) {
-            console.log(error);
+            console.error(error);
           }
         }
       };
@@ -75,7 +75,7 @@ export const Feedback = () => {
 
           setFeedbacks(interviewData);
         } catch (error) {
-          console.log(error);
+          console.error(error);
           toast("Error", {
             description: "Something went wrong. Please try again later..",
           });

@@ -44,7 +44,7 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
         resolver: zodResolver(formSchema) as Resolver<FormData>,
         defaultValues: initialData || {}
     })
-    const {isValid, isSubmitted, isSubmitting} = form.formState
+    const {isValid, isSubmitting} = form.formState
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
     const {userId} = useAuth()
@@ -149,7 +149,7 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
 
         navigate("/generate", {replace : true})
       } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Error..", {
         description: `Something went wrong. Please try again later`,
       });

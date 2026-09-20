@@ -1,8 +1,8 @@
 import { db } from "@/config/firebase.config";
 import type { Interview } from "@/types";
 import { doc, getDoc } from "firebase/firestore";
-import { use, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import LoaderPage from "./loader-page";
 import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,8 @@ import WebCam from "react-webcam";
 const MockLoadPage = () => {
       const { interviewId } = useParams<{ interviewId: string }>();
   const [interview, setInterview] = useState<Interview | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isWebCamEnabled, setIsWebCamEnabled] = useState(false);
-
-  const navigate = useNavigate();
-  if (!interviewId) {
-    navigate("/generate/", { replace: true });
-  }
 
     useEffect(() => {
         const fetchInterview = async () => {
@@ -31,15 +26,21 @@ const MockLoadPage = () => {
                     setInterview({id: interviewDoc.id,...interviewDoc.data()} as Interview)
                 }   
              } catch (error) {
-                console.log(error)
-                
+                console.error("Failed to load interview", error)
+             } finally {
+                setIsLoading(false)
              }
+            } else {
+                setIsLoading(false)
             }
         }
         fetchInterview()
     }, [interviewId])
+  if (!interviewId) {
+    return <Navigate to="/generate" replace />;
+  }
 
-    if (isLoading) {
+  if (isLoading) {
         return <LoaderPage className="w-full h-[70vh]" />;
     }
 

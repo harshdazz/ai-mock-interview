@@ -63,7 +63,6 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
         question.answer,
         userAnswer
       );
-      console.log(aiResult)
       setAiResult(aiResult);
     } else {
         startSpeechToText();
@@ -106,7 +105,7 @@ const generateResult = async (  qst: string,
 
         
     } catch (error) {
-         console.log(error);
+         console.error(error);
       toast("Error", {
         description: "An error occurred while generating feedback.",
       });
@@ -125,18 +124,22 @@ const generateResult = async (  qst: string,
   };
 
    const saveUserAnswer = async () => {
-    setLoading(true);
-
     if (!aiResult) {
+      toast.error("No feedback yet", {
+        description: "Record an answer and wait for feedback before saving.",
+      });
       return;
     }
-      const currentQuestion = question.question;
+
+    setLoading(true);
+    const currentQuestion = question.question;
     try {
       // query the firbase to check if the user answer already exists for this question
 
       const userAnswerQuery = query(
         collection(db, "userAnswers"),
         where("userId", "==", userId),
+        where("mockIdRef", "==", interviewId),
         where("question", "==", currentQuestion)
       );
 
@@ -144,7 +147,6 @@ const generateResult = async (  qst: string,
 
       // if the user already answerd the question dont save it again
       if (!querySnap.empty) {
-        console.log("Query Snap Size", querySnap.size);
         toast.info("Already Answered", {
           description: "You have already answered this question",
         });
@@ -169,13 +171,13 @@ const generateResult = async (  qst: string,
       setUserAnswer("");
       stopSpeechToText();
     } catch (error) {
-      toast("Error", {
-        description: "An error occurred while generating feedback.",
+      console.error("Failed to save answer", error);
+      toast.error("Could not save", {
+        description: "Your answer was not saved. Please try again.",
       });
-      console.log(error);
     } finally {
       setLoading(false);
-      setOpen(!open);
+      setOpen(false);
     }
   };
 
@@ -211,7 +213,7 @@ const generateResult = async (  qst: string,
           )}
           </div>
 
-            <div className="flex itece justify-center gap-3">
+            <div className="flex items-center justify-center gap-3">
         <TooltipButton
           content={isWebCam ? "Turn Off" : "Turn On"}
           icon={
@@ -252,7 +254,7 @@ const generateResult = async (  qst: string,
             )
           }
           onClick={() => setOpen(!open)}
-          disbaled={!aiResult}
+          disabled={!aiResult}
         />
         </div>
 
@@ -260,7 +262,7 @@ const generateResult = async (  qst: string,
         <h2 className="text-lg font-semibold">Your Answer:</h2>
 
          <p className="text-sm mt-2 text-gray-700 whitespace-normal">
-          {userAnswer || "Start recording to see your ansewer here"}
+          {userAnswer || "Start recording to see your answer here"}
         </p>
 
          {interimResult && (

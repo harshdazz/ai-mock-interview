@@ -1,13 +1,9 @@
 import type { Interview } from "@/types"
-import { useAuth } from "@clerk/clerk-react";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "./ui/badge";
@@ -22,9 +18,6 @@ interface InterviewPinProps {
 const InterviewPin = ({ interview, onMockPage = false }: InterviewPinProps) => {
 
   const navigate = useNavigate();
-
-  const [loading, setLoading] = useState(false);
-  const {userId} = useAuth();
 
 
 
@@ -67,7 +60,7 @@ const InterviewPin = ({ interview, onMockPage = false }: InterviewPinProps) => {
               onClick={() => {
                 navigate(`/generate/${interview?.id}`, { replace: true });
               }}
-              disbaled={false}
+              disabled={false}
               buttonClassName="hover:text-sky-500"
               icon={<Eye />}
               loading={false}
@@ -79,7 +72,7 @@ const InterviewPin = ({ interview, onMockPage = false }: InterviewPinProps) => {
               onClick={() => {
                 navigate(`/generate/feedback/${interview?.id}`, { replace: true });
               }}
-              disbaled={false}
+              disabled={false}
               buttonClassName="hover:text-yellow-500"
               icon={<Newspaper />}
               loading={false}
@@ -96,7 +89,7 @@ const InterviewPin = ({ interview, onMockPage = false }: InterviewPinProps) => {
                   replace: true,
                 });
               }}
-              disbaled={false}
+              disabled={false}
               buttonClassName="hover:text-sky-500"
               icon={<Sparkles />}
               loading={false}
