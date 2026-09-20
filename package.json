@@ -27,7 +27,6 @@
     "next-themes": "^0.4.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-fast-marquee": "^1.6.5",
     "react-hook-form": "^7.65.0",
     "react-hook-speech-to-text": "^0.8.0",
     "react-router": "^7.9.1",

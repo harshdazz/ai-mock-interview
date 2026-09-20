@@ -95,8 +95,10 @@
   /* Tabular figures for anything that ticks: timers, scores, word counts.
      Without this the layout jitters as digits change width. */
   .tabular {
+    font-family: theme("fontFamily.mono");
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
   }
 }
 

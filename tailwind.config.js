@@ -6,6 +6,13 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        // Schibsted Grotesk: a newspaper-derived grotesque. Composed and
+        // slightly mechanical, which is the voice PRODUCT.md asks for, and
+        // outside the Inter / DM Sans / Space Grotesk default set.
+        sans: ["Schibsted Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

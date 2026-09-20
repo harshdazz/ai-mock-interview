@@ -65,31 +65,22 @@ const { interviewId } = useParams<{ interviewId: string }>();
         ]}
       />
 
-        <div className="w-full">
-        <Alert className="border bg-surface p-4 rounded-lg flex items-start gap-3">
+        <Alert className="flex items-start gap-3 rounded-lg border bg-surface p-4">
           <Lightbulb className="h-5 w-5 text-warning" />
           <div>
-            <AlertTitle className="text-ink font-semibold">
-              Important Note
-            </AlertTitle>
+            <AlertTitle className="font-semibold text-ink">Before you start</AlertTitle>
             <AlertDescription className="text-sm text-ink-muted mt-1 leading-relaxed">
-              Press "Record Answer" to begin answering the question. Once you
-              finish the interview, you&apos;ll receive feedback comparing your
-              responses with the ideal answers.
+              Answer out loud, the way you would in the room. Press "Record your answer", speak, then stop to get scored feedback on what was missing.
               <br />
               <br />
-              <strong>Note:</strong>{" "}
-              <span className="font-medium">Your video is never recorded.</span>{" "}
-              You can disable the webcam anytime if preferred.
+              <span className="font-medium text-ink">Your video is never recorded or uploaded.</span>{" "}
+              It is on screen so you can see yourself, and you can turn it off at any time.
             </AlertDescription>
           </div>
         </Alert>
-      </div>
 
-       {interview?.questions && interview?.questions.length > 0 && (
-        <div className="mt-4 w-full flex flex-col items-start gap-4">
-          <QuestionSection questions={interview?.questions} />
-        </div>
+       {interview?.questions && interview.questions.length > 0 && (
+        <QuestionSection questions={interview.questions} />
       )}
 
     </div>
