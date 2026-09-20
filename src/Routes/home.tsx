@@ -24,25 +24,53 @@ const SessionPreview = () => (
       <span className="tabular ml-auto text-xs text-ink-faint">Question 2 of 5</span>
     </div>
 
-    <div className="grid gap-5 p-5 sm:grid-cols-[1fr_1.15fr]">
-      <div className="flex aspect-[4/3] items-center justify-center rounded-lg border bg-background">
-        <div className="flex flex-col items-center gap-2 px-4 text-center">
-          <span className="h-10 w-10 rounded-full bg-surface-2" aria-hidden="true" />
-          <span className="h-1.5 w-16 rounded-full bg-surface-2" aria-hidden="true" />
+    <div className="grid gap-5 p-5 sm:grid-cols-[1fr_1.1fr] sm:items-start">
+      <div className="relative flex aspect-video items-end justify-center overflow-hidden rounded-lg border bg-background">
+        {/* A figure, not an empty box. The real panel here is a live webcam
+            feed, so a blank rectangle read as a broken image. */}
+        <div className="flex flex-col items-center" aria-hidden="true">
+          <span className="h-12 w-12 rounded-full bg-border" />
+          <span className="-mt-1 h-16 w-28 rounded-t-[999px] bg-border" />
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <p className="text-pretty text-[15px] font-medium leading-snug text-ink">
           Walk me through a time you had to make a state management decision.
           What did you pick, and what would you do differently now?
         </p>
-        <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
+
+        <div className="flex flex-col gap-1.5 rounded-lg border bg-background p-3">
           <span className="text-[11px] font-medium text-ink-muted">Your answer</span>
           <p className="text-[13px] leading-relaxed text-ink-muted">
             So on the last project we put everything in Redux, and looking back
             most of that state was only ever read by one component
             <span className="font-light italic text-ink-faint"> which meant</span>
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
+          <div className="flex items-baseline gap-1.5">
+            <span className="tabular text-lg font-semibold text-warning">6</span>
+            <span className="tabular text-[11px] text-ink-faint">/ 10</span>
+            <span className="ml-auto text-[11px] font-medium text-warning">
+              Partly there
+            </span>
+          </div>
+          <div className="flex gap-1" aria-hidden="true">
+            {Array.from({ length: 10 }, (_, i) => (
+              <span
+                key={i}
+                className={
+                  "h-1 flex-1 rounded-full " +
+                  (i < 6 ? "bg-warning" : "bg-surface-2")
+                }
+              />
+            ))}
+          </div>
+          <p className="text-[12px] leading-relaxed text-ink-muted">
+            You named the tool but not the trade-off. Say what the state
+            actually was, and why local state would have carried it.
           </p>
         </div>
       </div>
@@ -70,8 +98,8 @@ const HomePage = () => {
     <div className="flex w-full flex-col pb-24">
       <Container>
         <section className="flex flex-col gap-8 py-14 sm:py-20">
-          <div className="flex max-w-[22ch] flex-col gap-5">
-            <h1 className="text-balance text-[clamp(2.25rem,6vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
+          <div className="flex flex-col gap-5">
+            <h1 className="max-w-3xl text-balance text-[clamp(1.75rem,6.5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
               You don't hear how weak the answer is until you say it out loud.
             </h1>
             <p className="max-w-[58ch] text-pretty text-lg leading-relaxed text-ink-muted">
@@ -102,7 +130,7 @@ const HomePage = () => {
         <SessionPreview />
 
         <section className="flex flex-col gap-10 py-20">
-          <h2 className="max-w-[24ch] text-balance text-[clamp(1.5rem,3.2vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+          <h2 className="max-w-[24ch] text-balance text-[clamp(1.375rem,3.4vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
             Three steps, about fifteen minutes.
           </h2>
 
@@ -124,7 +152,7 @@ const HomePage = () => {
         </section>
 
         <section className="flex flex-col items-start gap-6 border-t py-20">
-          <h2 className="max-w-[20ch] text-balance text-[clamp(1.5rem,3.2vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+          <h2 className="max-w-[20ch] text-balance text-[clamp(1.375rem,3.4vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
             Your video never leaves the browser.
           </h2>
           <p className="max-w-[62ch] text-pretty leading-relaxed text-ink-muted">
