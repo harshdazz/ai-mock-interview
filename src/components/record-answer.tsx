@@ -6,7 +6,8 @@ import { useParams } from "react-router-dom";
 import WebCam from "react-webcam";
 import { TooltipButton } from "./tooltip-button";
 import { toast } from "sonner";
-import { chatSession } from "@/script";
+import { generateFeedback, type AnswerFeedback } from "@/lib/ai/interview";
+import { AiError } from "@/lib/ai/client";
 import { SaveModal } from "./save-modal";
 import { addDoc, collection, getDocs, query, serverTimestamp, where } from "firebase/firestore";
 import { db } from "@/config/firebase.config";
@@ -16,11 +17,6 @@ interface RecordAnswerProps {
   question: { question: string; answer: string };
   isWebCam: boolean;
   setIsWebCam: (value: boolean) => void;
-}
-
-interface AIResponse {
-  ratings: number;
-  feedback: string;
 }
 
 const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) => {
@@ -37,7 +33,7 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
 
     const [userAnswer, setUserAnswer] = useState("");
   const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [aiResult, setAiResult] = useState<AIResponse | null>(null);
+  const [aiResult, setAiResult] = useState<AnswerFeedback | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -49,75 +45,46 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
       stopSpeechToText();
 
       if (userAnswer?.length < 30) {
-        toast.error("Error", {
-          description: "Your answer should be more than 30 characters",
+        toast.error("Answer too short", {
+          description: "Say a bit more before asking for feedback, at least a couple of sentences.",
         });
 
         return;
 
       }
 
-        //   ai result
-       const aiResult = await generateResult(
-        question.question,
-        question.answer,
-        userAnswer
-      );
-      setAiResult(aiResult);
+        setIsAiGenerating(true);
+      try {
+        const feedback = await generateFeedback({
+          question: question.question,
+          modelAnswer: question.answer,
+          userAnswer,
+        });
+        setAiResult(feedback);
+      } catch (error) {
+        console.error("Failed to generate feedback", error);
+        setAiResult(null);
+        toast.error(
+          error instanceof AiError && error.retryable
+            ? "Model is busy"
+            : "Could not grade that answer",
+          {
+            description:
+              error instanceof AiError
+                ? error.message
+                : "Your answer was kept. Press the microphone again to retry.",
+          }
+        );
+      } finally {
+        setIsAiGenerating(false);
+      }
     } else {
         startSpeechToText();
     }
 }
-  const cleanJsonResponse = (responseText: string) => {
-    // Step 1: Trim any surrounding whitespace
-    let cleanText = responseText.trim();
 
-    // Step 2: Remove any occurrences of "json" or code block symbols (``` or `)
-    cleanText = cleanText.replace(/(json|```|`)/g, "");
-
-    // Step 3: Parse the clean JSON text into an array of objects
-    try {
-      return JSON.parse(cleanText);
-    } catch (error) {
-      throw new Error("Invalid JSON format: " + (error as Error)?.message);
-    }
-  };
-
-const generateResult = async (  qst: string,
-    qstAns: string,
-    userAns: string): Promise<AIResponse> => {
-         setIsAiGenerating(true);
-    const prompt = `
-      Question: "${qst}"
-      User Answer: "${userAns}"
-      Correct Answer: "${qstAns}"
-      Please compare the user's answer to the correct answer, and provide a rating (from 1 to 10) based on answer quality, and offer feedback for improvement.
-      Return the result in JSON format with the fields "ratings" (number) and "feedback" (string).
-    `;
-
-    try {
-           const aiResult = await chatSession.sendMessage(prompt);
-
-            const parsedResult: AIResponse = cleanJsonResponse(
-        aiResult.response.text()
-      );
-      return parsedResult;
-
-        
-    } catch (error) {
-         console.error(error);
-      toast("Error", {
-        description: "An error occurred while generating feedback.",
-      });
-      return { ratings: 0, feedback: "Unable to generate feedback" };
-        
-    } finally {
-      setIsAiGenerating(false);
-    }
-
-}
-
-    const recordNewAnswer = () => {
+  const recordNewAnswer = () => {
+    setAiResult(null);
     setUserAnswer("");
     stopSpeechToText();
     startSpeechToText();
@@ -160,7 +127,7 @@ const generateResult = async (  qst: string,
           correct_ans: question.answer,
           user_ans: userAnswer,
           feedback: aiResult.feedback,
-          rating: aiResult.ratings,
+          rating: aiResult.rating,
           userId,
           createdAt: serverTimestamp(),
         });
