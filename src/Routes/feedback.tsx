@@ -1,15 +1,8 @@
 import { db } from "@/config/firebase.config";
 import { useAuth } from "@clerk/clerk-react";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
 import {
@@ -18,186 +11,195 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CircleCheck, Star } from "lucide-react";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Mic } from "lucide-react";
 import type { Interview, UserAnswer } from "@/types";
 import LoaderPage from "./loader-page";
 import Headings from "@/components/headings";
 import InterviewPin from "@/components/pin";
+import { ScoreDial } from "@/components/session/score-dial";
+
+const bandText = (rating: number) =>
+  rating >= 8 ? "text-success" : "text-warning";
 
 export const Feedback = () => {
   const { interviewId } = useParams<{ interviewId: string }>();
   const [interview, setInterview] = useState<Interview | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<UserAnswer[]>([]);
-  const [activeFeed, setActiveFeed] = useState("");
   const { userId } = useAuth();
-  const navigate = useNavigate();
 
-  if (!interviewId) {
-    navigate("/generate", { replace: true });
-  }
   useEffect(() => {
-    if (interviewId) {
-      const fetchInterview = async () => {
-        if (interviewId) {
-          try {
-            const interviewDoc = await getDoc(
-              doc(db, "interviews", interviewId)
-            );
-            if (interviewDoc.exists()) {
-              setInterview({
-                id: interviewDoc.id,
-                ...interviewDoc.data(),
-              } as Interview);
-            }
-          } catch (error) {
-            console.error(error);
-          }
+    if (!interviewId || !userId) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const [interviewDoc, answersSnap] = await Promise.all([
+          getDoc(doc(db, "interviews", interviewId)),
+          getDocs(
+            query(
+              collection(db, "userAnswers"),
+              where("userId", "==", userId),
+              where("mockIdRef", "==", interviewId)
+            )
+          ),
+        ]);
+        if (cancelled) return;
+
+        if (interviewDoc.exists()) {
+          setInterview({ id: interviewDoc.id, ...interviewDoc.data() } as Interview);
         }
-      };
+        setFeedbacks(
+          answersSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserAnswer)
+        );
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to load feedback", error);
+        toast.error("Could not load this feedback", {
+          description: "Check your connection and refresh the page.",
+        });
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
 
-      const fetchFeedbacks = async () => {
-        setIsLoading(true);
-        try {
-          const querSanpRef = query(
-            collection(db, "userAnswers"),
-            where("userId", "==", userId),
-            where("mockIdRef", "==", interviewId)
-          );
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [interviewId, userId]);
 
-          const querySnap = await getDocs(querSanpRef);
-
-          const interviewData: UserAnswer[] = querySnap.docs.map((doc) => {
-            return { id: doc.id, ...doc.data() } as UserAnswer;
-          });
-
-          setFeedbacks(interviewData);
-        } catch (error) {
-          console.error(error);
-          toast("Error", {
-            description: "Something went wrong. Please try again later..",
-          });
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchInterview();
-      fetchFeedbacks();
-    }
-  }, [interviewId, navigate, userId]);
-
-  //   calculate the ratings out of 10
-
-  const overAllRating = useMemo(() => {
-    if (feedbacks.length === 0) return "0.0";
-
-    const totalRatings = feedbacks.reduce(
-      (acc, feedback) => acc + feedback.rating,
-      0
-    );
-
-    return (totalRatings / feedbacks.length).toFixed(1);
+  const overall = useMemo(() => {
+    if (feedbacks.length === 0) return null;
+    const total = feedbacks.reduce((acc, f) => acc + (f.rating ?? 0), 0);
+    return total / feedbacks.length;
   }, [feedbacks]);
 
-  if (isLoading) {
-    return <LoaderPage className="w-full h-[70vh]" />;
-  }
+  // Redirecting from the render body is a React anti-pattern; it warned and
+  // could loop. Navigate does it declaratively instead.
+  if (!interviewId) return <Navigate to="/generate" replace />;
+  if (isLoading) return <LoaderPage className="h-[70vh] w-full" />;
 
   return (
-    <div className="flex flex-col w-full gap-8 py-5">
-      <div className="flex items-center justify-between w-full gap-2">
-        <CustomBreadCrumb
-          breadCrumbPage={"Feedback"}
-          breadCrumpItems={[
-            { label: "Mock Interviews", link: "/generate" },
-            {
-              label: `${interview?.position}`,
-              link: `/generate/interview/${interview?.id}`,
-            },
-          ]}
-        />
-      </div>
-
-      <Headings
-        title="Congratulations !"
-        description="Your personalized feedback is now available. Dive in to see your strengths, areas for improvement, and tips to help you ace your next interview."
+    <div className="flex w-full flex-col gap-8 py-5">
+      <CustomBreadCrumb
+        breadCrumbPage="Feedback"
+        breadCrumpItems={[
+          { label: "Mock Interviews", link: "/generate" },
+          {
+            label: interview?.position ?? "Interview",
+            link: `/generate/interview/${interviewId}`,
+          },
+        ]}
       />
 
-      <p className="text-base text-muted-foreground">
-        Your overall interview ratings :{" "}
-        <span className="text-success font-semibold text-xl">
-          {overAllRating} / 10
-        </span>
-      </p>
-
-      {interview && <InterviewPin interview={interview} onMockPage />}
-
-      <Headings title="Interview Feedback" isSubHeading description={""} />
-
-      {feedbacks && (
-        <Accordion type="single" collapsible className="space-y-6">
-          {feedbacks.map((feed) => (
-            <AccordionItem
-              key={feed.id}
-              value={feed.id}
-              className="border rounded-lg shadow-md"
+      {feedbacks.length === 0 ? (
+        <>
+          <Headings
+            title="No answers saved yet"
+            description="Feedback appears here once you have answered and saved at least one question."
+          />
+          <div className="flex flex-col items-center gap-4 rounded-lg border bg-surface px-6 py-16 text-center">
+            <span
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-2"
+              aria-hidden="true"
             >
-              <AccordionTrigger
-                onClick={() => setActiveFeed(feed.id)}
-                className={cn(
-                  "px-5 py-3 flex items-center justify-between text-base rounded-t-lg transition-colors hover:no-underline",
-                  activeFeed === feed.id
-                    ? "bg-gradient-to-r from-purple-50 to-blue-50"
-                    : "hover:bg-surface"
-                )}
+              <Mic className="h-5 w-5 text-ink-muted" />
+            </span>
+            <p className="max-w-[52ch] text-pretty text-sm text-ink-muted">
+              Answer the questions out loud, then save each result. You can
+              retake the interview as many times as you like.
+            </p>
+            <Button asChild className="mt-1">
+              <Link to={`/generate/interview/${interviewId}`}>
+                Start this interview
+              </Link>
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Deliberately not "Congratulations". This page is read by someone
+              who may have scored 2/10, and a score is a diagnosis, not a verdict
+              on them. */}
+          <Headings
+            title="How that went"
+            description="Each answer scored against the model answer, with what was missing and what to say instead."
+          />
+
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border bg-surface px-5 py-4">
+            <span className="text-sm text-ink-muted">
+              Average across {feedbacks.length}{" "}
+              {feedbacks.length === 1 ? "answer" : "answers"}
+            </span>
+            <span
+              className={cn(
+                "tabular text-2xl font-semibold",
+                bandText(overall ?? 0)
+              )}
+            >
+              {overall?.toFixed(1)}
+            </span>
+            <span className="tabular text-sm text-ink-faint">/ 10</span>
+          </div>
+
+          {interview && <InterviewPin interview={interview} onMockPage />}
+
+          <Headings title="Answer by answer" isSubHeading description="" />
+
+          <Accordion type="single" collapsible className="flex flex-col gap-3">
+            {feedbacks.map((feed) => (
+              <AccordionItem
+                key={feed.id}
+                value={feed.id}
+                className="overflow-hidden rounded-lg border"
               >
-                <span>{feed.question}</span>
-              </AccordionTrigger>
+                <AccordionTrigger className="gap-4 px-5 py-4 text-left text-[15px] font-medium hover:bg-surface hover:no-underline">
+                  <span className="flex-1 text-pretty">{feed.question}</span>
+                  <span
+                    className={cn(
+                      "tabular shrink-0 text-sm font-semibold",
+                      bandText(feed.rating)
+                    )}
+                  >
+                    {feed.rating}/10
+                  </span>
+                </AccordionTrigger>
 
-              <AccordionContent className="px-5 py-6 bg-background rounded-b-lg space-y-5 shadow-inner">
-                <div className="text-lg font-semibold to-gray-700">
-                  <Star className="inline mr-2 text-warning" />
-                  Rating : {feed.rating}
-                </div>
+                {/* Flat sections, not stacked cards. Cards inside an accordion
+                    item inside a card is three nested containers saying nothing. */}
+                <AccordionContent className="flex flex-col gap-6 border-t bg-surface px-5 py-6">
+                  <ScoreDial
+                    rating={feed.rating}
+                    feedback={feed.feedback}
+                    className="bg-background"
+                  />
 
-                <Card className="border-none space-y-3 p-4 bg-success/10 rounded-lg shadow-md">
-                  <CardTitle className="flex items-center text-lg">
-                    <CircleCheck className="mr-2 text-success" />
-                    Expected Answer
-                  </CardTitle>
+                  <section className="flex flex-col gap-2">
+                    <h3 className="text-sm font-medium text-ink-muted">
+                      What you said
+                    </h3>
+                    <p className="text-pretty text-[15px] leading-relaxed text-ink">
+                      {feed.user_ans}
+                    </p>
+                  </section>
 
-                  <CardDescription className="font-medium text-ink-muted">
-                    {feed.correct_ans}
-                  </CardDescription>
-                </Card>
-
-                <Card className="border-none space-y-3 p-4 bg-warning/10 rounded-lg shadow-md">
-                  <CardTitle className="flex items-center text-lg">
-                    <CircleCheck className="mr-2 text-warning" />
-                    Your Answer
-                  </CardTitle>
-
-                  <CardDescription className="font-medium text-ink-muted">
-                    {feed.user_ans}
-                  </CardDescription>
-                </Card>
-
-                <Card className="border-none space-y-3 p-4 bg-warning/10 rounded-lg shadow-md">
-                  <CardTitle className="flex items-center text-lg">
-                    <CircleCheck className="mr-2 text-warning" />
-                    Feedback
-                  </CardTitle>
-
-                  <CardDescription className="font-medium text-ink-muted">
-                    {feed.feedback}
-                  </CardDescription>
-                </Card>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                  <section className="flex flex-col gap-2">
+                    <h3 className="text-sm font-medium text-ink-muted">
+                      A strong answer
+                    </h3>
+                    <p className="text-pretty text-[15px] leading-relaxed text-ink-muted">
+                      {feed.correct_ans}
+                    </p>
+                  </section>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </>
       )}
     </div>
   );

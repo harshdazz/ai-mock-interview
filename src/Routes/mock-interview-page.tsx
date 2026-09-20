@@ -66,13 +66,13 @@ const { interviewId } = useParams<{ interviewId: string }>();
       />
 
         <div className="w-full">
-        <Alert className="bg-sky-100 border border-sky-200 p-4 rounded-lg flex items-start gap-3">
-          <Lightbulb className="h-5 w-5 text-sky-600" />
+        <Alert className="border bg-surface p-4 rounded-lg flex items-start gap-3">
+          <Lightbulb className="h-5 w-5 text-warning" />
           <div>
-            <AlertTitle className="text-sky-800 font-semibold">
+            <AlertTitle className="text-ink font-semibold">
               Important Note
             </AlertTitle>
-            <AlertDescription className="text-sm text-sky-700 mt-1 leading-relaxed">
+            <AlertDescription className="text-sm text-ink-muted mt-1 leading-relaxed">
               Press "Record Answer" to begin answering the question. Once you
               finish the interview, you&apos;ll receive feedback comparing your
               responses with the ideal answers.
