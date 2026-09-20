@@ -1,4 +1,5 @@
 import type { FieldValue, Timestamp } from "firebase/firestore";
+import type { ResumeProfile } from "@/lib/ai/resume";
 
 export interface User {
     id: string;
@@ -17,6 +18,8 @@ export interface Interview {
   userId: string;
   techStack: string;
   questions: { question: string; answer: string }[];
+  /** Set when the interview was generated from an uploaded CV. */
+  resume?: ResumeProfile | null;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
 }

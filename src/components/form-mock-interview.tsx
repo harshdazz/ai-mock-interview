@@ -18,6 +18,8 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { generateQuestions } from "@/lib/ai/interview";
 import { AiError } from "@/lib/ai/client";
+import { ResumeUpload } from "./resume-upload";
+import type { ResumeProfile } from "@/lib/ai/resume";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/config/firebase.config";
 
@@ -47,6 +49,9 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
     })
     const {isValid, isSubmitting} = form.formState
     const [loading, setLoading] = useState(false)
+    const [resume, setResume] = useState<ResumeProfile | null>(
+      initialData?.resume ?? null
+    )
     const navigate = useNavigate()
     const {userId} = useAuth()
 
@@ -66,10 +71,11 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
         if(initialData){
           // update
           if(isValid){
-             const aiResult = await generateQuestions(data)
+             const aiResult = await generateQuestions(data, resume)
             await updateDoc(doc(db, "interviews", initialData.id), {
 
               questions : aiResult,
+              resume : resume ?? null,
               ...data,
               updatedAt : serverTimestamp()
             })
@@ -83,12 +89,13 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
         
   // create new mock interview
           if(isValid){
-            const aiResult = await generateQuestions(data)
+            const aiResult = await generateQuestions(data, resume)
 
             await addDoc(collection(db, "interviews"), {
 
               ...data,
               questions : aiResult,
+              resume : resume ?? null,
               userId,
               createdAt : serverTimestamp()
             })
@@ -244,6 +251,15 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
               </FormItem>
             )}
           />
+
+          <div className="flex w-full flex-col gap-2">
+            <FormLabel>Your CV</FormLabel>
+            <ResumeUpload
+              value={resume}
+              onChange={setResume}
+              disabled={loading || isSubmitting}
+            />
+          </div>
 
            <div className="w-full flex items-center justify-end gap-6">
             <Button

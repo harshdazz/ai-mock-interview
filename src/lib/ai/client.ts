@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { GenerateContentConfig, Schema } from "@google/genai";
+import type { Part, Schema } from "@google/genai";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -70,13 +70,14 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * history was shared by every question in a session, so feedback for question
  * five was produced with questions one to four still in context.
  */
-export async function generateStructured<T>({
-  prompt,
+export async function generateFromParts<T>({
+  parts,
   schema,
   thinkingBudget = 0,
   signal,
 }: {
-  prompt: GenerateContentConfig["systemInstruction"] | string;
+  /** Text and/or inline file data. Gemini reads PDFs natively from a part. */
+  parts: Part[];
   schema: Schema;
   /** 0 disables thinking. Measured at a 42% latency cut with no quality loss
    *  on question generation; raise it for tasks that need reasoning. */
@@ -92,7 +93,7 @@ export async function generateStructured<T>({
       try {
         const response = await ai.models.generateContent({
           model,
-          contents: prompt as string,
+          contents: [{ role: "user", parts }],
           config: {
             responseMimeType: "application/json",
             responseSchema: schema,
@@ -140,4 +141,24 @@ export async function generateStructured<T>({
       ? "Every available model is busy right now. Wait a moment and try again."
       : `Could not reach the model. ${lastError instanceof Error ? lastError.message.slice(0, 160) : ""}`
   );
+}
+
+/** Text-only convenience wrapper over {@link generateFromParts}. */
+export function generateStructured<T>({
+  prompt,
+  schema,
+  thinkingBudget = 0,
+  signal,
+}: {
+  prompt: string;
+  schema: Schema;
+  thinkingBudget?: number;
+  signal?: AbortSignal;
+}): Promise<T> {
+  return generateFromParts<T>({
+    parts: [{ text: prompt }],
+    schema,
+    thinkingBudget,
+    signal,
+  });
 }

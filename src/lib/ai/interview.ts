@@ -1,5 +1,6 @@
 import { generateStructured } from "./client";
 import { feedbackSchema, questionsSchema } from "./schemas";
+import { resumePromptSection, type ResumeProfile } from "./resume";
 
 export interface GeneratedQuestion {
   question: string;
@@ -20,6 +21,7 @@ export interface InterviewBrief {
 
 export async function generateQuestions(
   brief: InterviewBrief,
+  resume?: ResumeProfile | null,
   signal?: AbortSignal
 ): Promise<GeneratedQuestion[]> {
   const prompt = `You are running a technical interview for the role below. Write five questions you would actually ask, in the order you would ask them, opening broader and getting more specific.
@@ -33,8 +35,12 @@ Pitch the difficulty at ${brief.experience} years of experience: no trivia, no p
 
 For each question also write the model answer you would grade against. Make it concrete and specific enough that a vague response is visibly weaker than a good one.`;
 
+  // With a CV attached the questions stop being about the stack in general and
+  // start being about what this candidate says they did.
+  const fullPrompt = resume ? prompt + resumePromptSection(resume) : prompt;
+
   return generateStructured<GeneratedQuestion[]>({
-    prompt,
+    prompt: fullPrompt,
     schema: questionsSchema,
     thinkingBudget: 0,
     signal,
