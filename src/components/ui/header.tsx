@@ -6,6 +6,7 @@ import { NavLink } from "react-router-dom"
 import ProfileContainer from "./profile-container"
 import ToggleContainer from "../toggle-container"
 import Container from "./conatiner"
+import { ThemeToggle } from "../theme-toggle"
 
 
 const Header = () => {
@@ -25,8 +26,8 @@ const Header = () => {
    </NavLink>)}
           </nav>
           {/* profile section */}
-          <div className="ml-auto flex items-center gap-6">
-            {/* profile section */}
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <ProfileContainer />
             {/* mobile toggle section */}
             <ToggleContainer />
