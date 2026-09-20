@@ -53,7 +53,7 @@ export const TooltipButton = ({
             onClick={onClick}
           >
             {loading ? (
-              <Loader className="min-w-4 min-h-4 animate-spin text-emerald-400" />
+              <Loader className="min-w-4 min-h-4 animate-spin text-success" />
             ) : (
               icon
             )}

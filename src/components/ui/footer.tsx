@@ -34,7 +34,7 @@ const FooterLink: React.FC<FooterLinkProps> = ({ to, children }) => {
     <li>
       <Link
         to={to}
-        className="hover:underline text-gray-300 hover:text-gray-100"
+        className="hover:underline text-ink hover:text-ink"
       >
         {children}
       </Link>
@@ -44,7 +44,7 @@ const FooterLink: React.FC<FooterLinkProps> = ({ to, children }) => {
 
 export const Footer = () => {
   return (
-    <div className="w-full bg-black text-gray-300 hover:text-gray-100 py-8">
+    <div className="w-full bg-surface text-ink hover:text-ink py-8">
       <Container>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* First Column: Links */}

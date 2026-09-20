@@ -127,7 +127,7 @@ export const Feedback = () => {
 
       <p className="text-base text-muted-foreground">
         Your overall interview ratings :{" "}
-        <span className="text-emerald-500 font-semibold text-xl">
+        <span className="text-success font-semibold text-xl">
           {overAllRating} / 10
         </span>
       </p>
@@ -150,47 +150,47 @@ export const Feedback = () => {
                   "px-5 py-3 flex items-center justify-between text-base rounded-t-lg transition-colors hover:no-underline",
                   activeFeed === feed.id
                     ? "bg-gradient-to-r from-purple-50 to-blue-50"
-                    : "hover:bg-gray-50"
+                    : "hover:bg-surface"
                 )}
               >
                 <span>{feed.question}</span>
               </AccordionTrigger>
 
-              <AccordionContent className="px-5 py-6 bg-white rounded-b-lg space-y-5 shadow-inner">
+              <AccordionContent className="px-5 py-6 bg-background rounded-b-lg space-y-5 shadow-inner">
                 <div className="text-lg font-semibold to-gray-700">
-                  <Star className="inline mr-2 text-yellow-400" />
+                  <Star className="inline mr-2 text-warning" />
                   Rating : {feed.rating}
                 </div>
 
-                <Card className="border-none space-y-3 p-4 bg-green-50 rounded-lg shadow-md">
+                <Card className="border-none space-y-3 p-4 bg-success/10 rounded-lg shadow-md">
                   <CardTitle className="flex items-center text-lg">
-                    <CircleCheck className="mr-2 text-green-600" />
+                    <CircleCheck className="mr-2 text-success" />
                     Expected Answer
                   </CardTitle>
 
-                  <CardDescription className="font-medium text-gray-700">
+                  <CardDescription className="font-medium text-ink-muted">
                     {feed.correct_ans}
                   </CardDescription>
                 </Card>
 
-                <Card className="border-none space-y-3 p-4 bg-yellow-50 rounded-lg shadow-md">
+                <Card className="border-none space-y-3 p-4 bg-warning/10 rounded-lg shadow-md">
                   <CardTitle className="flex items-center text-lg">
-                    <CircleCheck className="mr-2 text-yellow-600" />
+                    <CircleCheck className="mr-2 text-warning" />
                     Your Answer
                   </CardTitle>
 
-                  <CardDescription className="font-medium text-gray-700">
+                  <CardDescription className="font-medium text-ink-muted">
                     {feed.user_ans}
                   </CardDescription>
                 </Card>
 
-                <Card className="border-none space-y-3 p-4 bg-red-50 rounded-lg shadow-md">
+                <Card className="border-none space-y-3 p-4 bg-warning/10 rounded-lg shadow-md">
                   <CardTitle className="flex items-center text-lg">
-                    <CircleCheck className="mr-2 text-red-600" />
+                    <CircleCheck className="mr-2 text-warning" />
                     Feedback
                   </CardTitle>
 
-                  <CardDescription className="font-medium text-gray-700">
+                  <CardDescription className="font-medium text-ink-muted">
                     {feed.feedback}
                   </CardDescription>
                 </Card>

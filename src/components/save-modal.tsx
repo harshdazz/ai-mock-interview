@@ -28,7 +28,7 @@ export const SaveModal = ({
         </Button>
         <Button
           disabled={loading}
-          className="bg-emerald-600 hover:bg-emerald-800"
+          className="bg-success hover:bg-success"
           onClick={onConfirm}
         >
           Continue

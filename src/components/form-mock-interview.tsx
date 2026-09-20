@@ -143,7 +143,7 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
 
         {initialData && (
           <Button size={"icon"} variant={"ghost"}>
-          <Trash2 className="min-w-4 min-h-4 text-red-500" />
+          <Trash2 className="min-w-4 min-h-4 text-warning" />
           </Button>
 
         )}
@@ -260,7 +260,7 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
               disabled={isSubmitting || !isValid || loading}
             >
               {loading ? (
-                <Loader className="text-gray-50 animate-spin" />
+                <Loader className="text-ink animate-spin" />
               ) : (
                 actions
               )}

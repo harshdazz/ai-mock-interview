@@ -6,7 +6,7 @@ export const ToasterProvider = () => {
       theme="light"
       richColors
       position="top-right"
-      className="bg-neutral-100 shadow-lg"
+      className="bg-surface shadow-lg"
     />
   );
 };

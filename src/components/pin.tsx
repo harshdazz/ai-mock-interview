@@ -30,7 +30,7 @@ const InterviewPin = ({ interview, onMockPage = false }: InterviewPinProps) => {
           <Badge
             key={index}
             variant={"outline"}
-            className="text-xs text-muted-foreground hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-900"
+            className="text-xs text-muted-foreground hover:border-success/30 hover:bg-success/10 hover:text-success"
           >
             {word}
           </Badge>
@@ -73,7 +73,7 @@ const InterviewPin = ({ interview, onMockPage = false }: InterviewPinProps) => {
                 navigate(`/generate/feedback/${interview?.id}`, { replace: true });
               }}
               disabled={false}
-              buttonClassName="hover:text-yellow-500"
+              buttonClassName="hover:text-warning"
               icon={<Newspaper />}
               loading={false}
 

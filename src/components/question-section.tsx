@@ -50,7 +50,7 @@ const QuestionSection = ({ questions }: QuestionSectionProps) => {
           {questions?.map((tab, i) => (
             <TabsTrigger
               className={cn(
-                "data-[state=active]:bg-emerald-200 data-[state=active]:shadow-md text-xs px-2"
+                "data-[state=active]:bg-success/10 data-[state=active]:shadow-md text-xs px-2"
               )}
               key={tab.question}
               value={tab.question}
@@ -62,7 +62,7 @@ const QuestionSection = ({ questions }: QuestionSectionProps) => {
 
            {questions?.map((tab, i) => (
           <TabsContent key={i} value={tab.question}>
-            <p className="text-base text-left tracking-wide text-neutral-500">
+            <p className="text-base text-left tracking-wide text-ink-faint">
               {tab.question}
             </p>
 

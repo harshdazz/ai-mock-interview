@@ -86,7 +86,7 @@ const Dashboard = () => {
               No Data Found
             </h2>
 
-            <p className="w-full md:w-96 text-center text-sm text-neutral-400 mt-4">
+            <p className="w-full md:w-96 text-center text-sm text-ink-faint mt-4">
               There is no available data to show. Please add some new mock
               interviews
             </p>

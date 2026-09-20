@@ -5,6 +5,10 @@ import useSpeechToText, { type ResultType } from 'react-hook-speech-to-text';
 import { useParams } from "react-router-dom";
 import WebCam from "react-webcam";
 import { TooltipButton } from "./tooltip-button";
+import { Button } from "@/components/ui/button";
+import { TallyLight } from "./session/tally-light";
+import { LiveTranscript } from "./session/live-transcript";
+import { ScoreDial } from "./session/score-dial";
 import { toast } from "sonner";
 import { generateFeedback, type AnswerFeedback } from "@/lib/ai/interview";
 import { AiError } from "@/lib/ai/client";
@@ -18,6 +22,8 @@ interface RecordAnswerProps {
   isWebCam: boolean;
   setIsWebCam: (value: boolean) => void;
 }
+
+const MIN_ANSWER_CHARS = 30;
 
 const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) => {
      const {
@@ -44,7 +50,7 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
           if (isRecording) {
       stopSpeechToText();
 
-      if (userAnswer?.length < 30) {
+      if (userAnswer.trim().length < MIN_ANSWER_CHARS) {
         toast.error("Answer too short", {
           description: "Say a bit more before asking for feedback, at least a couple of sentences.",
         });
@@ -158,90 +164,141 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
   }, [results]);
 
 
+
+  const canSave = Boolean(aiResult) && !isAiGenerating;
+
   return (
-    <div className="w-full flex flex-col items-center gap-8 mt-4">
-        {/* save model */}
-          <SaveModal
+    <div className="flex w-full flex-col gap-6">
+      <SaveModal
         isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={saveUserAnswer}
         loading={loading}
       />
 
-         <div className="w-full h-[400px] md:w-96 flex flex-col items-center justify-center border p-4 bg-gray-50 rounded-md">
-               {isWebCam ? (
-            <WebCam
-              onUserMedia={() => setIsWebCam(true)}
-              onUserMediaError={() => setIsWebCam(false)}
-              className="w-full h-full object-cover rounded-md"
-            />
-          ) : (
-            <WebcamIcon className="min-w-24 min-h-24 text-muted-foreground" />
-          )}
+      {/* Camera left, answer right. The feed never drops below 280px: smaller
+          than that and it stops being useful for self-review. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(280px,420px)_1fr] lg:items-start">
+        <div className="flex flex-col gap-4">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border bg-surface">
+            {isWebCam ? (
+              <WebCam
+                audio={false}
+                mirrored
+                onUserMedia={() => setIsWebCam(true)}
+                onUserMediaError={() => {
+                  setIsWebCam(false);
+                  toast.error("Camera unavailable", {
+                    description:
+                      "Check that no other app is using it and that the browser has permission.",
+                  });
+                }}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center">
+                <WebcamIcon className="h-10 w-10 text-ink-faint" aria-hidden="true" />
+                <p className="text-sm text-ink-muted">
+                  Camera is off. You can still record audio, but watching
+                  yourself back is most of the value.
+                </p>
+              </div>
+            )}
+
+            {isRecording && (
+              <div className="absolute left-3 top-3">
+                <TallyLight isRecording className="bg-background/80 backdrop-blur-sm" />
+              </div>
+            )}
           </div>
 
-            <div className="flex items-center justify-center gap-3">
-        <TooltipButton
-          content={isWebCam ? "Turn Off" : "Turn On"}
-          icon={
-            isWebCam ? (
-              <VideoOff className="min-w-5 min-h-5" />
-            ) : (
-              <Video className="min-w-5 min-h-5" />
-            )
-          }
-          onClick={() => setIsWebCam(!isWebCam)}
-        />
+          {/* Controls sit with the camera, not in a page header: the user is
+              looking here, so the controls belong in the same eye path. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {!isRecording && <TallyLight isRecording={false} />}
+            <div className="ml-auto flex items-center gap-1">
+              <TooltipButton
+                content={isWebCam ? "Turn camera off" : "Turn camera on"}
+                icon={
+                  isWebCam ? (
+                    <VideoOff className="h-5 w-5" />
+                  ) : (
+                    <Video className="h-5 w-5" />
+                  )
+                }
+                onClick={() => setIsWebCam(!isWebCam)}
+              />
+              <TooltipButton
+                content="Start over"
+                icon={<RefreshCw className="h-5 w-5" />}
+                onClick={recordNewAnswer}
+                disabled={isAiGenerating}
+              />
+              <TooltipButton
+                content="Save this result"
+                icon={<Save className="h-5 w-5" />}
+                onClick={() => setOpen(true)}
+                disabled={!canSave}
+                loading={loading}
+              />
+            </div>
+          </div>
 
-          <TooltipButton
-          content={isRecording ? "Stop Recording" : "Start Recording"}
-          icon={
-            isRecording ? (
-              <CircleStop className="min-w-5 min-h-5" />
+          <Button
+            size="lg"
+            variant={isRecording ? "secondary" : "default"}
+            className="w-full"
+            onClick={recordUserAnswer}
+            disabled={isAiGenerating}
+          >
+            {isAiGenerating ? (
+              <>
+                <Loader className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                Grading your answer
+              </>
+            ) : isRecording ? (
+              <>
+                <CircleStop className="mr-2 h-4 w-4" aria-hidden="true" />
+                Stop and get feedback
+              </>
             ) : (
-              <Mic className="min-w-5 min-h-5" />
-            )
-          }
-          onClick={recordUserAnswer}
-        />
-
-          <TooltipButton
-          content="Record Again"
-          icon={<RefreshCw className="min-w-5 min-h-5" />}
-          onClick={recordNewAnswer}
-        />
-
-         <TooltipButton
-          content="Save Result"
-          icon={
-            isAiGenerating ? (
-              <Loader className="min-w-5 min-h-5 animate-spin" />
-            ) : (
-              <Save className="min-w-5 min-h-5" />
-            )
-          }
-          onClick={() => setOpen(!open)}
-          disabled={!aiResult}
-        />
+              <>
+                <Mic className="mr-2 h-4 w-4" aria-hidden="true" />
+                Record your answer
+              </>
+            )}
+          </Button>
         </div>
 
-           <div className="w-full mt-4 p-4 border rounded-md bg-gray-50">
-        <h2 className="text-lg font-semibold">Your Answer:</h2>
+        <div className="flex flex-col gap-6">
+          <LiveTranscript
+            finalText={userAnswer}
+            interimText={interimResult}
+            isRecording={isRecording}
+            minChars={MIN_ANSWER_CHARS}
+          />
 
-         <p className="text-sm mt-2 text-gray-700 whitespace-normal">
-          {userAnswer || "Start recording to see your answer here"}
-        </p>
+          {isAiGenerating && (
+            <div className="flex items-center gap-3 rounded-lg border bg-surface p-5 text-sm text-ink-muted">
+              <Loader className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {/* Generation runs 8-12s. An unexplained wait that long reads as
+                  a hang, so say what is happening. */}
+              Comparing your answer against the model answer. This usually takes
+              about ten seconds.
+            </div>
+          )}
 
-         {interimResult && (
-          <p className="text-sm text-gray-500 mt-2">
-            <strong>Current Speech:</strong>
-            {interimResult}
-          </p>
-        )}
+          {aiResult && !isAiGenerating && (
+            <ScoreDial
+              rating={aiResult.rating}
+              feedback={aiResult.feedback}
+              className="animate-fade-up"
+            />
+          )}
         </div>
-
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default RecordAnswer
+export default RecordAnswer;
