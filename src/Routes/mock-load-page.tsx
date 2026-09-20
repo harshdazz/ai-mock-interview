@@ -6,8 +6,9 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import LoaderPage from "./loader-page";
 import { CustomBreadCrumb } from "@/components/custom-bread-crumb";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Sparkles, WebcamIcon } from "lucide-react";
+import { FileText, Lightbulb, Sparkles, WebcamIcon } from "lucide-react";
 import InterviewPin from "@/components/pin";
+import { ResumeClaims } from "@/components/resume-upload";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import WebCam from "react-webcam";
 
@@ -59,7 +60,24 @@ const MockLoadPage = () => {
         </Link>
       </div>
       {interview && <InterviewPin interview={interview} onMockPage />}
-       <Alert className="bg-warning/10/50 border-warning/30 p-4 rounded-lg flex items-start gap-3 -mt-3">
+
+      {/* What these questions were actually built from. The interview stores
+          its own snapshot, so replacing your CV later does not rewrite the
+          history of questions already generated. */}
+      {interview?.resume && (
+        <section className="flex flex-col gap-3 rounded-lg border bg-surface p-5 -mt-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-ink-muted" aria-hidden="true" />
+            <h2 className="text-sm font-medium">Grounded in your CV</h2>
+          </div>
+          <ResumeClaims
+            profile={interview.resume}
+            limit={6}
+            label="These questions dig into"
+          />
+        </section>
+      )}
+       <Alert className="bg-warning/10 border-warning/30 p-4 rounded-lg flex items-start gap-3 -mt-3">
         <Lightbulb className="h-5 w-5 text-warning" />
         <div>
           <AlertTitle className="text-warning font-semibold">

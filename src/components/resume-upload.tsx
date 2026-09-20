@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { FileText, Loader, Upload, X } from "lucide-react";
+import { Loader, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AiError } from "@/lib/ai/client";
@@ -11,13 +11,18 @@ import {
 } from "@/lib/ai/resume";
 import { cn } from "@/lib/utils";
 
-interface ResumeUploadProps {
-  value: ResumeProfile | null;
-  onChange: (profile: ResumeProfile | null) => void;
+interface ResumeDropzoneProps {
+  onExtracted: (profile: ResumeProfile, fileName: string) => void | Promise<void>;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) => {
+/** File picker plus extraction. Owns no persistence: the caller decides. */
+export const ResumeDropzone = ({
+  onExtracted,
+  disabled,
+  compact = false,
+}: ResumeDropzoneProps) => {
   const [reading, setReading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -34,23 +39,24 @@ export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) =
     setFileName(file.name);
     try {
       const profile = await extractResume(file);
-      onChange(profile);
-      toast.success("CV read", {
+      await onExtracted(profile, file.name);
+      toast.success("CV saved", {
         description: `Found ${profile.talkingPoints.length} things an interviewer could ask about.`,
       });
     } catch (error) {
       console.error("Failed to read CV", error);
-      onChange(null);
       setFileName(null);
       toast.error(
         error instanceof AiError && error.kind === "rate_limited"
           ? "Daily API limit reached"
-          : "Could not read that CV", {
-        description:
-          error instanceof AiError
-            ? error.message
-            : "Something went wrong reading the file. You can create the interview without it.",
-      });
+          : "Could not read that CV",
+        {
+          description:
+            error instanceof AiError
+              ? error.message
+              : "Something went wrong reading the file. You can still create interviews without it.",
+        }
+      );
     } finally {
       setReading(false);
       // Allow re-selecting the same file after a failure.
@@ -58,62 +64,41 @@ export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) =
     }
   };
 
-  const clear = () => {
-    onChange(null);
-    setFileName(null);
-    if (inputRef.current) inputRef.current.value = "";
-  };
+  const input = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept={ACCEPTED_RESUME_TYPES.join(",")}
+      className="sr-only"
+      disabled={disabled || reading}
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) handleFile(file);
+      }}
+    />
+  );
 
-  if (value) {
+  if (compact) {
     return (
-      <div className="flex flex-col gap-3 rounded-lg border bg-surface p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <FileText className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden="true" />
-            <span className="truncate text-sm font-medium">
-              {fileName ?? "Your CV"}
-            </span>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={clear}
-            disabled={disabled}
-          >
-            <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Remove
-          </Button>
-        </div>
-
-        <p className="text-sm text-ink-muted">
-          {value.currentRole} · {value.yearsExperience}{" "}
-          {value.yearsExperience === 1 ? "year" : "years"}
-        </p>
-
-        {value.techStack.length > 0 && (
-          <p className="text-pretty text-sm text-ink-muted">
-            {value.techStack.slice(0, 12).join(", ")}
-          </p>
-        )}
-
-        {/* Showing the extracted claims is the point: the user can see exactly
-            what the questions will be built from before generating them. */}
-        {value.talkingPoints.length > 0 && (
-          <div className="flex flex-col gap-1.5 border-t pt-3">
-            <span className="text-xs font-medium text-ink-muted">
-              Questions will dig into
-            </span>
-            <ul className="flex list-disc flex-col gap-1 pl-4">
-              {value.talkingPoints.slice(0, 4).map((point) => (
-                <li key={point} className="text-pretty text-sm text-ink-muted">
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      <>
+        {input}
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={disabled || reading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {reading ? (
+            <>
+              <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              Reading
+            </>
+          ) : (
+            "Choose a PDF"
+          )}
+        </Button>
+      </>
     );
   }
 
@@ -136,18 +121,7 @@ export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) =
         dragging ? "border-primary bg-primary/5" : "border-border-strong bg-surface"
       )}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPTED_RESUME_TYPES.join(",")}
-        className="sr-only"
-        id="resume-upload"
-        disabled={disabled || reading}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFile(file);
-        }}
-      />
+      {input}
 
       {reading ? (
         <>
@@ -160,10 +134,11 @@ export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) =
         <>
           <Upload className="h-5 w-5 text-ink-muted" aria-hidden="true" />
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Add your CV (optional)</p>
-            <p className="max-w-[46ch] text-pretty text-sm text-ink-muted">
-              Questions will be built around what you actually did, so you have
-              to defend your own work instead of answering in the abstract.
+            <p className="text-sm font-medium">Add your CV</p>
+            <p className="max-w-[48ch] text-pretty text-sm text-ink-muted">
+              Upload it once and every interview you create will be built around
+              what you actually did, so you have to defend your own work instead
+              of answering in the abstract.
             </p>
           </div>
           <Button
@@ -178,6 +153,31 @@ export const ResumeUpload = ({ value, onChange, disabled }: ResumeUploadProps) =
           <p className="text-xs text-ink-faint">PDF, up to 5MB</p>
         </>
       )}
+    </div>
+  );
+};
+
+/** The claims a set of questions will be, or was, grounded in. */
+export const ResumeClaims = ({
+  profile,
+  limit = 4,
+  label = "Questions will dig into",
+}: {
+  profile: ResumeProfile;
+  limit?: number;
+  label?: string;
+}) => {
+  if (profile.talkingPoints.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-ink-muted">{label}</span>
+      <ul className="flex list-disc flex-col gap-1 pl-4">
+        {profile.talkingPoints.slice(0, limit).map((point) => (
+          <li key={point} className="text-pretty text-sm text-ink-muted">
+            {point}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

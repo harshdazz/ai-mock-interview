@@ -8,6 +8,11 @@ export interface User {
     imageUrl: string;
     createdAt: Timestamp | FieldValue
     updatedAt: Timestamp | FieldValue
+    /** The CV belongs to the person, so it is stored here and reused by every
+     *  interview they create. Each interview keeps its own snapshot. */
+    resume?: ResumeProfile | null
+    resumeFileName?: string | null
+    resumeUpdatedAt?: Timestamp | FieldValue
 }
 
 export interface Interview {

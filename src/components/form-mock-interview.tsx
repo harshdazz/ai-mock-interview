@@ -7,19 +7,19 @@ import type { Interview } from "@/types";
 import { CustomBreadCrumb } from "./custom-bread-crumb";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import Headings from "./headings";
 import { Button } from "./ui/button";
-import { Loader, Trash2 } from "lucide-react";
+import { FileCheck2, Loader, Trash2 } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { generateQuestions } from "@/lib/ai/interview";
 import { AiError } from "@/lib/ai/client";
-import { ResumeUpload } from "./resume-upload";
-import type { ResumeProfile } from "@/lib/ai/resume";
+import { ResumeDropzone } from "./resume-upload";
+import { useResume } from "@/hooks/use-resume";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/config/firebase.config";
 
@@ -49,9 +49,9 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
     })
     const {isValid, isSubmitting} = form.formState
     const [loading, setLoading] = useState(false)
-    const [resume, setResume] = useState<ResumeProfile | null>(
-      initialData?.resume ?? null
-    )
+    // The CV lives on the user, not on this form. Every interview reuses it.
+    const { resume: storedResume, save: saveResume } = useResume()
+    const resume = storedResume?.profile ?? null
     const navigate = useNavigate()
     const {userId} = useAuth()
 
@@ -258,11 +258,34 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
 
           <div className="flex w-full flex-col gap-2">
             <FormLabel>Your CV</FormLabel>
-            <ResumeUpload
-              value={resume}
-              onChange={setResume}
-              disabled={loading || isSubmitting}
-            />
+            {storedResume ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-surface px-4 py-3">
+                <FileCheck2 className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                <span className="text-sm">
+                  Grounding questions in{" "}
+                  <span className="font-medium">{storedResume.fileName}</span>
+                </span>
+                <Link
+                  to="/generate"
+                  className="ml-auto text-sm text-ink-muted underline underline-offset-4 hover:text-ink"
+                >
+                  Change
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-surface px-4 py-3">
+                <span className="text-pretty text-sm text-ink-muted">
+                  No CV yet. Questions will use the role details only.
+                </span>
+                <div className="ml-auto">
+                  <ResumeDropzone
+                    compact
+                    disabled={loading || isSubmitting}
+                    onExtracted={(profile, fileName) => saveResume(profile, fileName)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
            <div className="w-full flex items-center justify-end gap-6">

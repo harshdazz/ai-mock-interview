@@ -1,5 +1,6 @@
 import Headings from "@/components/headings";
 import InterviewPin from "@/components/pin";
+import { ResumeCard } from "@/components/resume-card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,6 +66,10 @@ const Dashboard = () => {
             New interview
           </Link>
         </Button>
+      </div>
+
+      <div className="mt-6">
+        <ResumeCard />
       </div>
 
       <Separator className="my-8" />
