@@ -77,8 +77,13 @@ firebase deploy --only firestore:rules
 ### Deploying
 
 ```bash
-pnpm deploy          # builds, then deploys hosting and Firestore rules
+pnpm run deploy      # builds, then deploys hosting and Firestore rules
 ```
+
+`run` is not optional there: `deploy` is one of pnpm's own commands, and
+[`pnpm-workspace.yaml`](./pnpm-workspace.yaml) makes this directory a workspace
+root, so plain `pnpm deploy` is intercepted by pnpm and fails with
+`ERR_PNPM_NOTHING_TO_DEPLOY`.
 
 Hosting config is in [`firebase.json`](./firebase.json). Every path rewrites to
 `index.html`, because the router is client-side and a hard refresh on

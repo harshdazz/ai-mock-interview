@@ -1,3 +1,8 @@
+# Not a monorepo. This file exists only to approve postinstall scripts for the
+# packages below; pnpm blocks them by default.
+#
+# Its presence does make pnpm treat this directory as a workspace root, which
+# means `pnpm deploy` resolves to pnpm's own built-in deploy command instead of
+# the script in package.json. Use `pnpm run deploy`.
 onlyBuiltDependencies:
-  - '@clerk/shared'
   - esbuild
