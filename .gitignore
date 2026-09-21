@@ -25,4 +25,5 @@ dist-ssr
 
 # environment variables
 .env
-.env.* 
+.env.* # ...but .env.example carries no values and the README tells you to copy it.
+!.env.example
