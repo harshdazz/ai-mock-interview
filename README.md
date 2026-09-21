@@ -1,69 +1,134 @@
-# React + TypeScript + Vite
+# Mock Interview
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Practise technical interviews out loud. You describe the role you're going for,
+upload your CV, and get five questions written for that specific job. You answer
+them into your webcam, your speech is transcribed live, and each answer is scored
+against a model answer with the specific gap named.
 
-Currently, two official plugins are available:
+The point is the speaking. Reading interview questions and nodding along tells
+you nothing about whether you can actually say the answer under pressure.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+> **Live demo:** _not deployed yet_
+> **Note:** the Gemini free tier allows 20 requests per model per day, so a
+> public demo exhausts quickly. Run it locally with your own key.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## What makes it more than a question generator
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Questions are grounded in your actual CV.** Upload a PDF and the questions
+stop being about React in the abstract and start being about what you claim you
+did:
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+| Without a CV | With a CV |
+| --- | --- |
+| "In a logistics dashboard, real-time data visualization is often critical. How would you handle..." | "You replaced a polling loop with a WebSocket feed for live vehicle positions, saving around 40k requests a day. How did..." |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+You can't answer the second one from memorised theory. Measured across a test
+run, four of five questions cite specific claims from the CV.
+
+**The CV is read natively by Gemini.** The PDF goes to the API as inline base64,
+so there's no `pdf.js` in the bundle and no text-extraction step to get wrong.
+
+**Scores always come with a diagnosis.** There's deliberately no way to render a
+bare number: a rating without the gap it refers to reads as a verdict on the
+person rather than something to act on.
+
+---
+
+## Stack
+
+React 19 · TypeScript 5.8 · Vite 7 · Tailwind 3.4 with shadcn/Radix primitives
+· Clerk (auth) · Firebase Firestore (persistence) · Google Gemini via
+`@google/genai` · Web Speech API · `react-webcam`
+
+---
+
+## Running it locally
+
+```bash
+git clone https://github.com/harshdazz/ai-mock-interview.git
+cd ai-mock-interview
+pnpm install
+cp .env.example .env    # then fill it in, see below
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Every key is free-tier. `.env.example` lists all eight with links.
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable | Where it comes from |
+| --- | --- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | [clerk.com](https://clerk.com) → your app → API Keys |
+| `VITE_GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `VITE_FIREBASE_*` (6 keys) | [Firebase console](https://console.firebase.google.com) → web app config |
+
+Enable **Firestore Database** in the Firebase console, and grant camera and
+microphone permission when the browser asks.
+
+### Scripts
+
+| | |
+| --- | --- |
+| `pnpm dev` | Dev server on :5173 |
+| `pnpm build` | Typecheck and production build |
+| `pnpm lint` | ESLint |
+| `pnpm preview` | Serve the built output |
+
+---
+
+## How it's put together
+
 ```
+src/
+  lib/ai/          Gemini layer: client, schemas, prompts, CV extraction
+  components/
+    session/       TallyLight, LiveTranscript, ScoreDial
+  hooks/           useResume
+  Routes/          Pages
+  config/          Firebase
+```
+
+**`src/lib/ai/client.ts`** is where the interesting decisions live. Three things
+it handles that were not obvious up front:
+
+- **Structured output.** The API is given a response schema, so there's no
+  markdown fence to strip and no JSON array to find with a regex.
+- **A measured model chain.** Gemini's free tier is 20 requests *per model per
+  day*, so the chain exists to buy quota, not just redundancy. Availability was
+  measured rather than assumed: at time of writing `gemini-3.5-flash` was the
+  most reliable, while newer flash models load-shed heavily.
+- **429 and 503 are handled differently.** A 429 means that model's daily
+  allowance is spent and will not recover inside a request, so it moves straight
+  to the next model. A 503 is transient and worth one retry. Treating them the
+  same burned six requests on a guaranteed failure.
+
+**Thinking is disabled for question generation.** Measured 18.7s at the default
+automatic budget against 10.8s with it off, for output of the same length and
+quality. Grading keeps a small budget, since that one is a judgement call.
+
+---
+
+## Known limitations
+
+- **The Gemini key ships in the client bundle.** Anything prefixed `VITE_` is
+  compiled into the JS and readable in devtools. A serverless proxy is the
+  correct fix; restricting the key by HTTP referrer is the stopgap.
+- **Speech recognition is Chrome-only** in practice. Other browsers fall back to
+  a typed answer, which is fully supported but not the point of the exercise.
+- **One JS chunk, ~320 kB gzipped.** Firebase and Clerk dominate it. Route-level
+  code splitting is the obvious next step.
+- **Free-tier quota** works out to roughly 14 full interviews per day.
+
+---
+
+## Credit
+
+The project began as a rebuild of a
+[React interview-prep tutorial](https://github.com/Mahalakshmi-Design-Studioz/ai-mock-interview-react-vite-typescript-january-2025)
+by Mahalakshmi Design Studioz, and has since been substantially rewritten:
+migrated to React 19 and the current `@google/genai` SDK with structured output,
+rebuilt on a verified OKLCH design system, and extended with CV-driven question
+generation, a typed-answer mode, and the retry and quota handling described
+above.
