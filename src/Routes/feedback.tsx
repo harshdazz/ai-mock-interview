@@ -1,5 +1,5 @@
 import { db } from "@/config/firebase.config";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/providers/auth-context";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";

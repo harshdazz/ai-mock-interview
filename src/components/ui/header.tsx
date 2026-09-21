@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { useAuth } from "@clerk/clerk-react"
+import { useAuth } from "@/providers/auth-context"
 import { LogoContainer } from "./logo-container"
 import { NavigationRoutes } from "./navigation-routes"
 import { NavLink } from "react-router-dom"

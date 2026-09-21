@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import Container from "@/components/ui/conatiner";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { SignedIn, SignedOut } from "@/providers/auth-provider";
 
 /**
  * A still of the real session screen, built from the same tokens the product

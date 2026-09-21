@@ -5,7 +5,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { useAuth } from "@clerk/clerk-react"
+import { useAuth } from "@/providers/auth-context"
 import { Menu } from "lucide-react"
 import { NavigationRoutes } from "./ui/navigation-routes"
 import { NavLink } from "react-router-dom"

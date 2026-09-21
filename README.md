@@ -39,7 +39,7 @@ person rather than something to act on.
 ## Stack
 
 React 19 · TypeScript 5.8 · Vite 7 · Tailwind 3.4 with shadcn/Radix primitives
-· Clerk (auth) · Firebase Firestore (persistence) · Google Gemini via
+· Firebase Auth and Firestore · Google Gemini via
 `@google/genai` · Web Speech API · `react-webcam`
 
 ---
@@ -56,16 +56,21 @@ pnpm dev
 
 ### Environment
 
-Every key is free-tier. `.env.example` lists all eight with links.
+Every key is free-tier. `.env.example` lists all seven with links.
 
 | Variable | Where it comes from |
 | --- | --- |
-| `VITE_CLERK_PUBLISHABLE_KEY` | [clerk.com](https://clerk.com) → your app → API Keys |
 | `VITE_GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `VITE_FIREBASE_*` (6 keys) | [Firebase console](https://console.firebase.google.com) → web app config |
 
-Enable **Firestore Database** in the Firebase console, and grant camera and
+In the Firebase console: enable **Email/Password** and **Google** under
+Authentication → Sign-in method, create a **Firestore** database, then publish
+[`firestore.rules`](./firestore.rules) from this repo. Grant camera and
 microphone permission when the browser asks.
+
+Auth is Firebase's rather than a third-party provider's on purpose: it makes
+`request.auth.uid` real inside Firestore rules, so per-user access control needs
+no token exchange, no backend and no service-account key.
 
 ### Scripts
 
@@ -86,6 +91,7 @@ src/
   components/
     session/       TallyLight, LiveTranscript, ScoreDial
   hooks/           useResume
+  providers/       auth (Firebase), theme
   Routes/          Pages
   config/          Firebase
 ```
@@ -117,7 +123,7 @@ quality. Grading keeps a small budget, since that one is a judgement call.
   correct fix; restricting the key by HTTP referrer is the stopgap.
 - **Speech recognition is Chrome-only** in practice. Other browsers fall back to
   a typed answer, which is fully supported but not the point of the exercise.
-- **One JS chunk, ~320 kB gzipped.** Firebase and Clerk dominate it. Route-level
+- **One JS chunk, ~320 kB gzipped.** Firebase dominates it. Route-level
   code splitting is the obvious next step.
 - **Free-tier quota** works out to roughly 14 full interviews per day.
 

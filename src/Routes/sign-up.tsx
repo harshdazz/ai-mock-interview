@@ -1,9 +1,5 @@
-import {SignUp} from "@clerk/clerk-react"
+import { AuthForm } from "@/components/auth-form";
 
-const SignUpPage = () => {
-  return (
-    <SignUp path="/signup" />
-  )
-}
+const SignUpPage = () => <AuthForm mode="sign-up" />;
 
-export default SignUpPage
+export default SignUpPage;

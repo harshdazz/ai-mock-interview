@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/config/firebase.config";
 import type { Interview } from "@/types";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/providers/auth-context";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Mic, Plus } from "lucide-react";
 import { useEffect, useState } from "react";

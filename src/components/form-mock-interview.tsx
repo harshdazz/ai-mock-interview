@@ -8,7 +8,7 @@ import { CustomBreadCrumb } from "./custom-bread-crumb";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/providers/auth-context";
 import Headings from "./headings";
 import { Button } from "./ui/button";
 import { FileCheck2, Loader, Trash2 } from "lucide-react";

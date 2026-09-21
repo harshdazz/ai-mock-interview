@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/providers/auth-context";
 import {
   CircleStop,
   Keyboard,
