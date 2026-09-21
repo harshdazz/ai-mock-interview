@@ -2,11 +2,14 @@ rules_version = '2';
 
 // Paste this into Firebase console -> Firestore Database -> Rules -> Publish.
 //
-// PREREQUISITE: these rules deny everything unless the Clerk session has been
-// exchanged for a Firebase one. Enable the Firebase integration in the Clerk
-// dashboard first, so getToken({ template: "integration_firebase" }) returns a
-// token; src/hooks/use-firebase-auth.ts does the exchange. Publishing these
-// rules without that step locks the app out of its own data.
+// PREREQUISITE: enable Email/Password and Google under Authentication ->
+// Sign-in method first. These rules deny every request where request.auth is
+// null, so publishing them before sign-in works locks the app out of its own
+// data.
+//
+// Auth is Firebase's rather than a third-party provider's precisely so that
+// request.auth.uid is populated here directly, with no token exchange and no
+// backend in between.
 //
 // Default test-mode rules allow the whole world to read and write, and expire
 // 30 days after the project is created, at which point every request starts
@@ -32,8 +35,8 @@ service cloud.firestore {
       return isOwner(resource.data.userId);
     }
 
-    // users/{userId}: profile plus the stored CV. The document id is the Clerk
-    // user id, which is what the token exchange puts in request.auth.uid.
+    // users/{userId}: profile plus the stored CV. The document id is the
+    // Firebase uid.
     match /users/{userId} {
       allow read: if isOwner(userId);
       // The document id is the user id, so the path already proves ownership.
