@@ -8,7 +8,7 @@ against a model answer with the specific gap named.
 The point is the speaking. Reading interview questions and nodding along tells
 you nothing about whether you can actually say the answer under pressure.
 
-> **Live demo:** _not deployed yet_
+> **Live demo:** https://ai-mock-interview-react-d2314.web.app
 > **Note:** the Gemini free tier allows 20 requests per model per day, so a
 > public demo exhausts quickly. Run it locally with your own key.
 
@@ -87,8 +87,16 @@ root, so plain `pnpm deploy` is intercepted by pnpm and fails with
 
 Hosting config is in [`firebase.json`](./firebase.json). Every path rewrites to
 `index.html`, because the router is client-side and a hard refresh on
-`/generate/interview/abc` would otherwise 404. Hashed assets are cached for a
-year and `index.html` is not, so a deploy takes effect immediately.
+`/generate/interview/abc` would otherwise 404.
+
+The cache headers are ordered deliberately. Header rules match the path the
+browser *asked for*, not the file the rewrite resolves to, so a rule on
+`/index.html` matches nothing a visitor ever requests — they request `/` or
+`/signin`. The catch-all `**` rule therefore marks the app shell `no-cache`,
+and the `/assets/**` rule after it re-marks the hashed bundles immutable for a
+year. Every matching rule is applied in order, so the later one wins where they
+overlap. Get this wrong and the shell is cached for an hour and a deploy appears
+not to have happened.
 
 Auth is Firebase's rather than a third-party provider's on purpose: it makes
 `request.auth.uid` real inside Firestore rules, so per-user access control needs
