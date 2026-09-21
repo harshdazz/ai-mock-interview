@@ -4,6 +4,7 @@ import type { User } from "@/types";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 /**
  * Creates the Firestore user record once, the first time a signed-in user is
@@ -12,6 +13,10 @@ import { useEffect, useState } from "react";
  */
 const AuthHandler = () => {
   const { isSignedIn } = useAuth();
+  // Exchanges the Clerk session for a Firebase one so Firestore rules can
+  // identify the caller. Mounted here because this component already runs on
+  // every layout.
+  useFirebaseAuth();
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
 

@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// Paste this into Firebase console -> Firestore Database -> Rules -> Publish.
+//
+// PREREQUISITE: these rules deny everything unless the Clerk session has been
+// exchanged for a Firebase one. Enable the Firebase integration in the Clerk
+// dashboard first, so getToken({ template: "integration_firebase" }) returns a
+// token; src/hooks/use-firebase-auth.ts does the exchange. Publishing these
+// rules without that step locks the app out of its own data.
+//
+// Default test-mode rules allow the whole world to read and write, and expire
+// 30 days after the project is created, at which point every request starts
+// failing for no visible reason.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // A document may not be reassigned to somebody else on write.
+    function ownsPayload() {
+      return isOwner(request.resource.data.userId);
+    }
+
+    function ownsExisting() {
+      return isOwner(resource.data.userId);
+    }
+
+    // users/{userId}: profile plus the stored CV. The document id is the Clerk
+    // user id, which is what the token exchange puts in request.auth.uid.
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      // The document id is the user id, so the path already proves ownership.
+      // Also requiring an "id" field would deny the CV merge-write, which does
+      // not carry one.
+      allow create, update: if isOwner(userId);
+      // Profiles are not deleted from the app.
+      allow delete: if false;
+    }
+
+    // interviews/{id}: the role brief, generated questions, and a snapshot of
+    // the CV profile used at generation time.
+    match /interviews/{interviewId} {
+      allow read: if ownsExisting();
+      allow create: if ownsPayload();
+      allow update: if ownsExisting() && ownsPayload();
+      allow delete: if ownsExisting();
+    }
+
+    // userAnswers/{id}: a spoken or typed answer with its rating and feedback.
+    match /userAnswers/{answerId} {
+      allow read: if ownsExisting();
+      allow create: if ownsPayload();
+      allow update: if ownsExisting() && ownsPayload();
+      allow delete: if ownsExisting();
+    }
+
+    // Anything not matched above is denied. Keep it that way: a trailing
+    // allow-all makes every rule above decorative.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
