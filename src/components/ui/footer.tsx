@@ -1,119 +1,69 @@
-import React from "react";
-
-import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react"; // Import Lucide icons
+import { Github, Linkedin } from "lucide-react";
 import { Link } from "react-router-dom";
-import { MainRoutes } from "@/lib/helpers";
 import Container from "./conatiner";
 
-interface SocialLinkProps {
+// The author's own profiles. The previous footer linked to facebook.com,
+// twitter.com and instagram.com -- the sites' front pages, not anybody's
+// account -- alongside a "123 AI Street, Tech City" postal address for a
+// company that does not exist.
+const AUTHOR = {
+  github: "https://github.com/harshdazz",
+  linkedin: "https://www.linkedin.com/in/harsh-dubey-b2b2b4395",
+};
+
+const Social = ({
+  href,
+  label,
+  children,
+}: {
   href: string;
-  icon: React.ReactNode;
-  hoverColor: string;
-}
-
-const SocialLink: React.FC<SocialLinkProps> = ({ href, icon, hoverColor }) => {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`hover:${hoverColor}`}
-    >
-      {icon}
-    </a>
-  );
-};
-
-interface FooterLinkProps {
-  to: string;
+  label: string;
   children: React.ReactNode;
-}
+}) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={label}
+    // The old version built its hover class by interpolating a prop into
+    // `hover:${hoverColor}`. Tailwind scans source text for complete class
+    // names, so it never generated those rules and no hover colour applied.
+    className="text-ink-muted transition-colors hover:text-ink"
+  >
+    {children}
+  </a>
+);
 
-const FooterLink: React.FC<FooterLinkProps> = ({ to, children }) => {
-  return (
-    <li>
-      <Link
-        to={to}
-        className="hover:underline text-ink hover:text-ink"
-      >
-        {children}
-      </Link>
-    </li>
-  );
-};
+export const Footer = () => (
+  <footer className="w-full border-t bg-surface">
+    <Container>
+      <div className="flex flex-col gap-6 py-8 md:flex-row md:items-center md:justify-between">
+        <p className="max-w-md text-pretty text-sm text-ink-muted">
+          Practise technical interviews out loud: describe the role, answer five
+          questions with your camera on, and see each answer scored against a
+          model answer.
+        </p>
 
-export const Footer = () => {
-  return (
-    <div className="w-full bg-surface text-ink hover:text-ink py-8">
-      <Container>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* First Column: Links */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              {MainRoutes.map((route) => (
-                <FooterLink key={route.href} to={route.href}>
-                  {route.label}
-                </FooterLink>
-              ))}
-            </ul>
-          </div>
+        <div className="flex items-center gap-6">
+          <nav aria-label="Footer">
+            <Link
+              to="/"
+              className="text-sm text-ink-muted transition-colors hover:text-ink"
+            >
+              Home
+            </Link>
+          </nav>
 
-          {/* Second Column: About Us */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">About Us</h3>
-            <p>
-              We are committed to helping you unlock your full potential with
-              AI-powered tools. Our platform offers a wide range of resources to
-              improve your interview skills and chances of success.
-            </p>
-          </div>
-
-          {/* Third Column: Services */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">Services</h3>
-            <ul>
-              <FooterLink to="/services/interview-prep">
-                Interview Preparation
-              </FooterLink>
-              <FooterLink to="/services/career-coaching">
-                Career Coaching
-              </FooterLink>
-              <FooterLink to="/services/resume-building">
-                Resume Building
-              </FooterLink>
-            </ul>
-          </div>
-
-          {/* Fourth Column: Address and Social Media */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">Contact Us</h3>
-            <p className="mb-4">123 AI Street, Tech City, 12345</p>
-            <div className="flex gap-4">
-              <SocialLink
-                href="https://facebook.com"
-                icon={<Facebook size={24} />}
-                hoverColor="text-blue-500"
-              />
-              <SocialLink
-                href="https://twitter.com"
-                icon={<Twitter size={24} />}
-                hoverColor="text-blue-400"
-              />
-              <SocialLink
-                href="https://instagram.com"
-                icon={<Instagram size={24} />}
-                hoverColor="text-pink-500"
-              />
-              <SocialLink
-                href="https://linkedin.com"
-                icon={<Linkedin size={24} />}
-                hoverColor="text-blue-700"
-              />
-            </div>
+          <div className="flex items-center gap-4">
+            <Social href={AUTHOR.github} label="GitHub">
+              <Github size={20} aria-hidden="true" />
+            </Social>
+            <Social href={AUTHOR.linkedin} label="LinkedIn">
+              <Linkedin size={20} aria-hidden="true" />
+            </Social>
           </div>
         </div>
-      </Container>
-    </div>
-  );
-};
+      </div>
+    </Container>
+  </footer>
+);
