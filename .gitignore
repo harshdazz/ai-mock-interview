@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.* # ...but .env.example carries no values and the README tells you to copy it.
 !.env.example
+
+# Firebase CLI
+.firebase/

@@ -64,9 +64,26 @@ Every key is free-tier. `.env.example` lists all seven with links.
 | `VITE_FIREBASE_*` (6 keys) | [Firebase console](https://console.firebase.google.com) → web app config |
 
 In the Firebase console: enable **Email/Password** and **Google** under
-Authentication → Sign-in method, create a **Firestore** database, then publish
-[`firestore.rules`](./firestore.rules) from this repo. Grant camera and
-microphone permission when the browser asks.
+Authentication → Sign-in method, and create a **Firestore** database. Grant
+camera and microphone permission when the browser asks.
+
+The security rules live in this repo rather than only in the console, so they
+are reviewable and deploy with the app:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+### Deploying
+
+```bash
+pnpm deploy          # builds, then deploys hosting and Firestore rules
+```
+
+Hosting config is in [`firebase.json`](./firebase.json). Every path rewrites to
+`index.html`, because the router is client-side and a hard refresh on
+`/generate/interview/abc` would otherwise 404. Hashed assets are cached for a
+year and `index.html` is not, so a deploy takes effect immediately.
 
 Auth is Firebase's rather than a third-party provider's on purpose: it makes
 `request.auth.uid` real inside Firestore rules, so per-user access control needs
