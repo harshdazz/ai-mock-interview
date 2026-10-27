@@ -1,15 +1,12 @@
 import type { Generate } from "./gemini.ts";
-import { feedbackSchema, questionsSchema } from "./schemas.ts";
+import { questionsSchema } from "./schemas.ts";
 import { resumePromptSection, type ResumeProfile } from "./resume.ts";
 
 export interface GeneratedQuestion {
   question: string;
   answer: string;
-}
-
-export interface AnswerFeedback {
-  rating: number;
-  feedback: string;
+  /** What the answer is graded against. See grading.ts. */
+  keyPoints: string[];
 }
 
 export interface InterviewBrief {
@@ -34,7 +31,7 @@ Role description: ${brief.description}
 
 Pitch the difficulty at ${brief.experience} years of experience: no trivia, no puzzles, nothing that only rewards memorisation. Favour questions about trade-offs and decisions the candidate would have faced in real work with ${brief.techStack}.
 
-For each question also write the model answer you would grade against. Make it concrete and specific enough that a vague response is visibly weaker than a good one.`;
+For each question also write the model answer you would grade against. Make it concrete and specific enough that a vague response is visibly weaker than a good one. Then pull 4 to 6 key points out of that model answer: the specific claims a strong answer has to make, each one checkable on its own against a transcript.`;
 
   // With a CV attached the questions stop being about the stack in general and
   // start being about what this candidate says they did.
@@ -44,37 +41,6 @@ For each question also write the model answer you would grade against. Make it c
     parts: [{ text: fullPrompt }],
     schema: questionsSchema,
     thinkingBudget: 0,
-    signal,
-  });
-}
-
-export async function generateFeedback(
-  generate: Generate,
-  {
-    question,
-    modelAnswer,
-    userAnswer,
-  }: { question: string; modelAnswer: string; userAnswer: string },
-  signal?: AbortSignal
-): Promise<AnswerFeedback> {
-  const prompt = `Grade this interview answer.
-
-Question: ${question}
-
-Model answer: ${modelAnswer}
-
-Candidate's spoken answer: ${userAnswer}
-
-The candidate's answer was transcribed from speech, so ignore punctuation, filler words and false starts. Grade the substance only.
-
-Rate it 1 to 10. Then say what was missing and what to say instead, in two or three sentences addressed directly to the candidate. Be specific about the gap. Do not open with praise, do not soften the assessment, and do not restate the question.`;
-
-  // A small thinking budget here: grading is a judgement call and benefits from
-  // it, unlike question generation where it cost 8s and changed nothing.
-  return generate<AnswerFeedback>({
-    parts: [{ text: prompt }],
-    schema: feedbackSchema,
-    thinkingBudget: 256,
     signal,
   });
 }

@@ -70,10 +70,8 @@ export const generateQuestions = (
   signal?: AbortSignal
 ) => call("questions", { brief, resume }, signal);
 
-export const generateFeedback = (
-  input: AiTasks["feedback"]["request"],
-  signal?: AbortSignal
-) => call("feedback", input, signal);
+export const gradeAnswer = (input: AiTasks["grade"]["request"], signal?: AbortSignal) =>
+  call("grade", input, signal);
 
 export { ACCEPTED_RESUME_TYPES, MAX_RESUME_BYTES };
 

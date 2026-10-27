@@ -1,13 +1,14 @@
 import type { z } from "zod";
 import {
-  feedbackRequest,
+  gradeRequest,
   questionsRequest,
   resumeRequest,
   type AiTask,
 } from "../src/lib/ai/contract.ts";
 import { AiError, type AiErrorBody, type AiFailureKind } from "../src/lib/ai/errors.ts";
 import { createGemini, type Generate } from "../src/lib/ai/gemini.ts";
-import { generateFeedback, generateQuestions } from "../src/lib/ai/interview.ts";
+import { gradeAnswer } from "../src/lib/ai/grading.ts";
+import { generateQuestions } from "../src/lib/ai/interview.ts";
 import { extractResume } from "../src/lib/ai/resume.ts";
 import { AuthError, verifyFirebaseIdToken } from "./auth.ts";
 
@@ -41,9 +42,7 @@ const ROUTES: Record<AiTask, Route<z.ZodType, unknown>> = {
   questions: route(questionsRequest, (generate, { brief, resume }, signal) =>
     generateQuestions(generate, brief, resume, signal)
   ),
-  feedback: route(feedbackRequest, (generate, input, signal) =>
-    generateFeedback(generate, input, signal)
-  ),
+  grade: route(gradeRequest, (generate, input, signal) => gradeAnswer(generate, input, signal)),
   resume: route(resumeRequest, (generate, input, signal) =>
     extractResume(generate, input, signal)
   ),
@@ -154,7 +153,12 @@ export default {
     }
 
     try {
-      const result = await run(createGemini(env.GEMINI_API_KEY), parsed.data, request.signal);
+      // One structured line per Gemini attempt: which model, how long, and why
+      // it failed if it did. Workers observability indexes these fields.
+      const generate = createGemini(env.GEMINI_API_KEY, {
+        onAttempt: (attempt) => console.log(JSON.stringify({ task, ...attempt })),
+      });
+      const result = await run(generate, parsed.data, request.signal);
       return json(result, 200, cors);
     } catch (error) {
       if (error instanceof AiError) {

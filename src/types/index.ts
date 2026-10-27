@@ -1,5 +1,14 @@
 import type { FieldValue, Timestamp } from "firebase/firestore";
+import type { KeyPointResult } from "@/lib/ai/scoring";
 import type { ResumeProfile } from "@/lib/ai/resume";
+
+export interface InterviewQuestion {
+  question: string;
+  answer: string;
+  /** What answers are graded against. Absent on interviews generated before
+   *  criteria scoring, in which case the worker derives them per grade. */
+  keyPoints?: string[];
+}
 
 export interface User {
     id: string;
@@ -22,7 +31,7 @@ export interface Interview {
   experience: number;
   userId: string;
   techStack: string;
-  questions: { question: string; answer: string }[];
+  questions: InterviewQuestion[];
   /** Set when the interview was generated from an uploaded CV. */
   resume?: ResumeProfile | null;
   createdAt: Timestamp;
@@ -35,8 +44,13 @@ export interface UserAnswer {
   question: string;
   correct_ans: string;
   user_ans: string;
+  /** A one-line summary naming the missed points. */
   feedback: string;
+  /** 0 to 10, computed from `criteria`. Older answers hold a 1-10 model guess. */
   rating: number;
+  /** Per-key-point result. Absent on answers graded before criteria scoring. */
+  criteria?: KeyPointResult[];
+  advice?: string;
   userId: string;
   createdAt: Timestamp;
   updatedAt?: Timestamp;

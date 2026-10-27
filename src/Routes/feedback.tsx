@@ -174,7 +174,8 @@ export const Feedback = () => {
                 <AccordionContent className="flex flex-col gap-6 border-t bg-surface px-5 py-6">
                   <ScoreDial
                     rating={feed.rating}
-                    feedback={feed.feedback}
+                    feedback={feed.criteria ? (feed.advice ?? "") : feed.feedback}
+                    points={feed.criteria}
                     className="bg-background"
                   />
 

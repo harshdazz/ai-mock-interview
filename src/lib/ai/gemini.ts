@@ -35,6 +35,15 @@ export const MODEL_CHAIN = [
 const RETRIES_ON_OVERLOAD = 1;
 const BASE_BACKOFF_MS = 800;
 
+/**
+ * A normal call takes 2 to 17 seconds. Under load Gemini's own errors are slow
+ * too (503s took up to 36s and a 504 took 41s in testing), but they do end.
+ * This cap is for an attempt that never answers at all, which would otherwise
+ * hold the whole request. Timing out moves on to the next model, like any
+ * other non-quota failure.
+ */
+const ATTEMPT_TIMEOUT_MS = 45_000;
+
 export interface GenerateRequest {
   /** Text and/or inline file data. Gemini reads PDFs natively from a part. */
   parts: Part[];
@@ -51,6 +60,13 @@ export interface GenerateRequest {
  * grading code runs in the worker, in `pnpm eval`, and against a fake in tests.
  */
 export type Generate = <T>(request: GenerateRequest) => Promise<T>;
+
+export interface GenerateAttempt {
+  model: string;
+  ms: number;
+  /** Absent when the attempt succeeded. */
+  error?: string;
+}
 
 const rawOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
@@ -97,11 +113,12 @@ const formatWait = (seconds?: number) => {
 export function createGemini(
   apiKey: string,
   {
-    onRequest,
+    onAttempt,
   }: {
-    /** Called once per HTTP request to Gemini, retries and fallbacks included,
-     *  so a caller can count what a run actually cost against the quota. */
-    onRequest?: (model: string) => void;
+    /** Called after every HTTP request to Gemini, retries and fallbacks
+     *  included, so a caller can log where the time went and count what a
+     *  run actually cost against the quota. */
+    onAttempt?: (attempt: GenerateAttempt) => void;
   } = {}
 ): Generate {
   if (!apiKey) {
@@ -126,8 +143,8 @@ export function createGemini(
       for (let attempt = 0; attempt <= RETRIES_ON_OVERLOAD; attempt++) {
         if (signal?.aborted) throw new AiError("unknown", "Request cancelled");
 
+        const startedAt = Date.now();
         try {
-          onRequest?.(model);
           const response = await ai.models.generateContent({
             model,
             contents: [{ role: "user", parts }],
@@ -136,19 +153,28 @@ export function createGemini(
               responseSchema: schema,
               thinkingConfig: { thinkingBudget },
               abortSignal: signal,
+              httpOptions: { timeout: ATTEMPT_TIMEOUT_MS },
             },
           });
 
-          const text = response.text;
+          // Not `response.text`: with thinking on, that getter logs a warning
+          // about the thought-signature parts on every single call.
+          const text = response.candidates?.[0]?.content?.parts
+            ?.filter((part) => typeof part.text === "string" && !part.thought)
+            .map((part) => part.text)
+            .join("");
           if (!text) throw new AiError("malformed", "Model returned an empty response");
 
           try {
-            return JSON.parse(text) as T;
+            const parsed = JSON.parse(text) as T;
+            onAttempt?.({ model, ms: Date.now() - startedAt });
+            return parsed;
           } catch {
             throw new AiError("malformed", "Model returned output that was not valid JSON");
           }
         } catch (error) {
           lastError = error;
+          onAttempt?.({ model, ms: Date.now() - startedAt, error: rawOf(error).slice(0, 160) });
 
           if (error instanceof AiError && error.kind === "malformed") {
             break; // a schema violation will not fix itself on the same model

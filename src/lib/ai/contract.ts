@@ -1,5 +1,7 @@
 import { z } from "zod";
-import type { AnswerFeedback, GeneratedQuestion } from "./interview.ts";
+import type { GradeInput } from "./grading.ts";
+import type { AnswerGrade } from "./scoring.ts";
+import type { GeneratedQuestion } from "./interview.ts";
 import type { ResumeProfile } from "./resume.ts";
 
 /**
@@ -43,12 +45,15 @@ export const questionsRequest = z.object({
   resume: resumeProfile.nullish(),
 });
 
-export const feedbackRequest = z.object({
+export const gradeRequest = z.object({
   question: text(2000).min(1),
   modelAnswer: text(6000).min(1),
+  // Optional: interviews generated before key points existed have none, and
+  // the worker derives them.
+  keyPoints: list(8, text(300).min(1)).optional(),
   // A ten-minute spoken answer is around 9,000 characters.
-  userAnswer: text(20000).min(1),
-});
+  answer: text(20000).min(1),
+}) satisfies z.ZodType<GradeInput>;
 
 export const resumeRequest = z.object({
   mimeType: z.enum(ACCEPTED_RESUME_TYPES),
@@ -59,7 +64,7 @@ export const resumeRequest = z.object({
 /** Request and response for each worker route, keyed by its path. */
 export interface AiTasks {
   questions: { request: z.input<typeof questionsRequest>; response: GeneratedQuestion[] };
-  feedback: { request: z.input<typeof feedbackRequest>; response: AnswerFeedback };
+  grade: { request: z.input<typeof gradeRequest>; response: AnswerGrade };
   resume: { request: z.input<typeof resumeRequest>; response: ResumeProfile };
 }
 

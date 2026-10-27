@@ -21,8 +21,8 @@ import { TallyLight } from "./session/tally-light";
 import { LiveTranscript } from "./session/live-transcript";
 import { ScoreDial } from "./session/score-dial";
 import { toast } from "sonner";
-import { generateFeedback } from "@/lib/ai/api";
-import type { AnswerFeedback } from "@/lib/ai/interview";
+import { gradeAnswer } from "@/lib/ai/api";
+import { describeGrade, type AnswerGrade } from "@/lib/ai/scoring";
 import { AiError } from "@/lib/ai/errors";
 import { SaveModal } from "./save-modal";
 import {
@@ -35,9 +35,10 @@ import {
 } from "firebase/firestore";
 import { db } from "@/config/firebase.config";
 import { cn } from "@/lib/utils";
+import type { InterviewQuestion } from "@/types";
 
 interface RecordAnswerProps {
-  question: { question: string; answer: string };
+  question: InterviewQuestion;
   isWebCam: boolean;
   setIsWebCam: (value: boolean) => void;
 }
@@ -61,7 +62,7 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
 
   const [userAnswer, setUserAnswer] = useState("");
   const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [aiResult, setAiResult] = useState<AnswerFeedback | null>(null);
+  const [aiResult, setAiResult] = useState<AnswerGrade | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<AnswerMode>("speak");
@@ -103,12 +104,13 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
 
     setIsAiGenerating(true);
     try {
-      const feedback = await generateFeedback({
+      const grade = await gradeAnswer({
         question: question.question,
         modelAnswer: question.answer,
-        userAnswer: answer,
+        keyPoints: question.keyPoints,
+        answer,
       });
-      setAiResult(feedback);
+      setAiResult(grade);
     } catch (error) {
       console.error("Failed to generate feedback", error);
       setAiResult(null);
@@ -188,8 +190,10 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
         question: question.question,
         correct_ans: question.answer,
         user_ans: userAnswer,
-        feedback: aiResult.feedback,
-        rating: aiResult.rating,
+        feedback: describeGrade(aiResult),
+        rating: aiResult.score,
+        criteria: aiResult.points,
+        advice: aiResult.advice,
         userId,
         createdAt: serverTimestamp(),
       });
@@ -422,15 +426,16 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
               <Loader className="h-4 w-4 animate-spin" aria-hidden="true" />
               {/* Generation runs 8-12s. An unexplained wait that long reads as
                   a hang, so say what is happening. */}
-              Comparing your answer against the model answer. This usually takes
+              Checking your answer against each key point. This usually takes
               about ten seconds.
             </div>
           )}
 
           {aiResult && !isAiGenerating && (
             <ScoreDial
-              rating={aiResult.rating}
-              feedback={aiResult.feedback}
+              rating={aiResult.score}
+              feedback={aiResult.advice}
+              points={aiResult.points}
               className="animate-fade-up"
             />
           )}

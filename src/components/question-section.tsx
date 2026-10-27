@@ -4,12 +4,13 @@ import { cn } from "@/lib/utils";
 import { TooltipButton } from "./tooltip-button";
 import { Volume2, VolumeX } from "lucide-react";
 import RecordAnswer from "./record-answer";
+import type { InterviewQuestion } from "@/types";
 
 const SUPPORTS_SPEECH =
   typeof window !== "undefined" && "speechSynthesis" in window;
 
 interface QuestionSectionProps {
-  questions: { question: string; answer: string }[];
+  questions: InterviewQuestion[];
 }
 
 const QuestionSection = ({ questions }: QuestionSectionProps) => {
