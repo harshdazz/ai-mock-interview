@@ -25,8 +25,17 @@ dist-ssr
 
 # environment variables
 .env
-.env.* # ...but .env.example carries no values and the README tells you to copy it.
+# gitignore has no trailing comments: a "# ..." after a pattern becomes part of
+# it, which left .env.production and friends unignored.
+.env.*
+# ...but .env.example carries no values and the README tells you to copy it.
 !.env.example
 
 # Firebase CLI
 .firebase/
+
+# Wrangler: local Durable Object state, and the 16k-line runtime types that
+# `pnpm typecheck:api` regenerates from wrangler.jsonc.
+.wrangler/
+.dev.vars*
+worker/worker-configuration.d.ts

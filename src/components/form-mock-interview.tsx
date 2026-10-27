@@ -16,8 +16,8 @@ import { Separator } from "./ui/separator";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { generateQuestions } from "@/lib/ai/interview";
-import { AiError } from "@/lib/ai/client";
+import { generateQuestions } from "@/lib/ai/api";
+import { AiError } from "@/lib/ai/errors";
 import { ResumeDropzone } from "./resume-upload";
 import { useResume } from "@/hooks/use-resume";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -115,7 +115,7 @@ const FormMockInterview = ( {initialData } : FormMockInterviewProps) => {
       toast.error(
         error instanceof AiError
           ? error.kind === "rate_limited"
-            ? "Daily API limit reached"
+            ? "AI usage limit reached"
             : "Could not generate questions"
           : "Something went wrong",
         {

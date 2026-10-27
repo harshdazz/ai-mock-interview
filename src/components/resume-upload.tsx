@@ -2,13 +2,13 @@ import { useRef, useState } from "react";
 import { Loader, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { AiError } from "@/lib/ai/client";
+import { AiError } from "@/lib/ai/errors";
 import {
   ACCEPTED_RESUME_TYPES,
   extractResume,
   validateResumeFile,
-  type ResumeProfile,
-} from "@/lib/ai/resume";
+} from "@/lib/ai/api";
+import type { ResumeProfile } from "@/lib/ai/resume";
 import { cn } from "@/lib/utils";
 
 interface ResumeDropzoneProps {
@@ -48,7 +48,7 @@ export const ResumeDropzone = ({
       setFileName(null);
       toast.error(
         error instanceof AiError && error.kind === "rate_limited"
-          ? "Daily API limit reached"
+          ? "AI usage limit reached"
           : "Could not read that CV",
         {
           description:

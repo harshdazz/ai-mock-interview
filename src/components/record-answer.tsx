@@ -21,8 +21,9 @@ import { TallyLight } from "./session/tally-light";
 import { LiveTranscript } from "./session/live-transcript";
 import { ScoreDial } from "./session/score-dial";
 import { toast } from "sonner";
-import { generateFeedback, type AnswerFeedback } from "@/lib/ai/interview";
-import { AiError } from "@/lib/ai/client";
+import { generateFeedback } from "@/lib/ai/api";
+import type { AnswerFeedback } from "@/lib/ai/interview";
+import { AiError } from "@/lib/ai/errors";
 import { SaveModal } from "./save-modal";
 import {
   addDoc,
@@ -113,7 +114,7 @@ const RecordAnswer = ({ question, isWebCam, setIsWebCam }: RecordAnswerProps) =>
       setAiResult(null);
       toast.error(
         error instanceof AiError && error.kind === "rate_limited"
-          ? "Daily API limit reached"
+          ? "AI usage limit reached"
           : error instanceof AiError && error.retryable
             ? "Model is busy"
             : "Could not grade that answer",

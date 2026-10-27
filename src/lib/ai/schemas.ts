@@ -1,3 +1,5 @@
+// Server-side: these describe what Gemini must return, so only code that calls
+// Gemini imports them.
 import { Type } from "@google/genai";
 import type { Schema } from "@google/genai";
 

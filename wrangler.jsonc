@@ -1,0 +1,26 @@
+// The AI API: a Cloudflare Worker that holds the Gemini key so the browser
+// never has to. Local: `pnpm dev:api`. Production: `pnpm run deploy:api`, after
+// `pnpm exec wrangler secret put GEMINI_API_KEY`.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ai-mock-interview-api",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "vars": {
+    // Public values. ID tokens must be issued for this Firebase project.
+    "FIREBASE_PROJECT_ID": "ai-mock-interview-react-d2314",
+    "ALLOWED_ORIGINS": "https://ai-mock-interview-react-d2314.web.app,https://ai-mock-interview-react-d2314.firebaseapp.com,http://localhost:5173,http://localhost:4173",
+    // Requests per signed-in user per window. One request can make several
+    // Gemini calls, and the whole free tier is about 100 calls a day.
+    "RATE_LIMIT_REQUESTS": "30",
+    "RATE_LIMIT_WINDOW_SECONDS": "3600"
+  },
+  // Declaring it means `wrangler dev` reads only this name from .env, not the
+  // VITE_ variables that sit next to it.
+  "secrets": { "required": ["GEMINI_API_KEY"] },
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITER", "class_name": "RateLimiter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RateLimiter"] }]
+}

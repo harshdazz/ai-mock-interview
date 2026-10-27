@@ -6,3 +6,5 @@
 # the script in package.json. Use `pnpm run deploy`.
 onlyBuiltDependencies:
   - esbuild
+  # wrangler's local runtime; its postinstall puts the platform binary in place.
+  - workerd

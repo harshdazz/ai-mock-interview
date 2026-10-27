@@ -1,6 +1,6 @@
-import { generateStructured } from "./client";
-import { feedbackSchema, questionsSchema } from "./schemas";
-import { resumePromptSection, type ResumeProfile } from "./resume";
+import type { Generate } from "./gemini.ts";
+import { feedbackSchema, questionsSchema } from "./schemas.ts";
+import { resumePromptSection, type ResumeProfile } from "./resume.ts";
 
 export interface GeneratedQuestion {
   question: string;
@@ -20,6 +20,7 @@ export interface InterviewBrief {
 }
 
 export async function generateQuestions(
+  generate: Generate,
   brief: InterviewBrief,
   resume?: ResumeProfile | null,
   signal?: AbortSignal
@@ -39,8 +40,8 @@ For each question also write the model answer you would grade against. Make it c
   // start being about what this candidate says they did.
   const fullPrompt = resume ? prompt + resumePromptSection(resume) : prompt;
 
-  return generateStructured<GeneratedQuestion[]>({
-    prompt: fullPrompt,
+  return generate<GeneratedQuestion[]>({
+    parts: [{ text: fullPrompt }],
     schema: questionsSchema,
     thinkingBudget: 0,
     signal,
@@ -48,6 +49,7 @@ For each question also write the model answer you would grade against. Make it c
 }
 
 export async function generateFeedback(
+  generate: Generate,
   {
     question,
     modelAnswer,
@@ -69,8 +71,8 @@ Rate it 1 to 10. Then say what was missing and what to say instead, in two or th
 
   // A small thinking budget here: grading is a judgement call and benefits from
   // it, unlike question generation where it cost 8s and changed nothing.
-  return generateStructured<AnswerFeedback>({
-    prompt,
+  return generate<AnswerFeedback>({
+    parts: [{ text: prompt }],
     schema: feedbackSchema,
     thinkingBudget: 256,
     signal,
