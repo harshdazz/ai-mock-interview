@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
+    "eval": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env scripts/eval.ts",
     "deploy": "pnpm build && firebase deploy",
     "dev:api": "wrangler dev",
     "typecheck:api": "wrangler types worker/worker-configuration.d.ts && tsc -p worker",
