@@ -25,6 +25,10 @@ export interface AnswerGrade {
     retried: number;
     /** Of those, the ones still unbacked after one retry, so counted missed. */
     dropped: number;
+    /** Claims whose quote was real but did not make the point, so counted missed. */
+    unsupported: number;
+    /** False if the support check could not run, e.g. every model was busy. */
+    supportChecked: boolean;
   };
 }
 

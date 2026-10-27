@@ -32,6 +32,16 @@ export const MODEL_CHAIN = [
   "gemini-3-flash-preview",
 ] as const;
 
+/**
+ * For small yes/no checks that run alongside the main call. Same models, lite
+ * first: the check is easy enough for it, and because quota is per model,
+ * starting elsewhere keeps the checks from eating the main chain's allowance.
+ */
+export const LIGHT_CHAIN = [
+  "gemini-3.1-flash-lite",
+  ...MODEL_CHAIN.filter((model) => model !== "gemini-3.1-flash-lite"),
+] as const;
+
 const RETRIES_ON_OVERLOAD = 1;
 const BASE_BACKOFF_MS = 800;
 
@@ -45,12 +55,17 @@ const BASE_BACKOFF_MS = 800;
 const ATTEMPT_TIMEOUT_MS = 45_000;
 
 export interface GenerateRequest {
+  /** Every instruction for the call. Kept out of `parts`, which carries
+   *  user-supplied data; see untrusted.ts. */
+  system: string;
   /** Text and/or inline file data. Gemini reads PDFs natively from a part. */
   parts: Part[];
   schema: Schema;
   /** 0 disables thinking. Measured at a 42% latency cut with no quality loss
    *  on question generation; raise it for tasks that need reasoning. */
   thinkingBudget?: number;
+  /** "light" starts from {@link LIGHT_CHAIN}. Defaults to the main chain. */
+  tier?: "standard" | "light";
   signal?: AbortSignal;
 }
 
@@ -130,16 +145,18 @@ export function createGemini(
   const ai = new GoogleGenAI({ apiKey });
 
   return async function generate<T>({
+    system,
     parts,
     schema,
     thinkingBudget = 0,
+    tier = "standard",
     signal,
   }: GenerateRequest): Promise<T> {
     let sawRateLimit = false;
     let soonestRetry: number | undefined;
     let lastError: unknown;
 
-    for (const model of MODEL_CHAIN) {
+    for (const model of tier === "light" ? LIGHT_CHAIN : MODEL_CHAIN) {
       for (let attempt = 0; attempt <= RETRIES_ON_OVERLOAD; attempt++) {
         if (signal?.aborted) throw new AiError("unknown", "Request cancelled");
 
@@ -149,6 +166,7 @@ export function createGemini(
             model,
             contents: [{ role: "user", parts }],
             config: {
+              systemInstruction: system,
               responseMimeType: "application/json",
               responseSchema: schema,
               thinkingConfig: { thinkingBudget },

@@ -87,6 +87,32 @@ export const gradingSchema = (pointCount: number): Schema => ({
   propertyOrdering: ["points", "advice"],
 });
 
+/**
+ * One yes/no per (key point, quote) pair: do these words make this point?
+ * The short reason comes first so the answer follows from it.
+ */
+export const supportSchema = (pairCount: number): Schema => ({
+  type: Type.OBJECT,
+  properties: {
+    checks: {
+      type: Type.ARRAY,
+      minItems: String(pairCount),
+      maxItems: String(pairCount),
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.INTEGER },
+          reason: { type: Type.STRING, description: "At most 15 words." },
+          supports: { type: Type.BOOLEAN },
+        },
+        required: ["id", "reason", "supports"],
+        propertyOrdering: ["id", "reason", "supports"],
+      },
+    },
+  },
+  required: ["checks"],
+});
+
 /** The second look at points whose quotes were not found. No advice needed. */
 export const verdictsSchema = (pointCount: number): Schema => ({
   type: Type.OBJECT,
