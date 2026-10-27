@@ -7,7 +7,8 @@
 export interface KeyPointResult {
   point: string;
   covered: boolean;
-  /** The candidate's words that made the point. Empty when missed. */
+  /** The candidate's words that made the point, as they appear in the
+   *  transcript (see quotes.ts). Empty when missed. */
   quote: string;
 }
 
@@ -19,6 +20,12 @@ export interface AnswerGrade {
   points: KeyPointResult[];
   /** What to say instead, written by the model about the missed points. */
   advice: string;
+  verification: {
+    /** "Covered" claims whose quote was not in the transcript. */
+    retried: number;
+    /** Of those, the ones still unbacked after one retry, so counted missed. */
+    dropped: number;
+  };
 }
 
 /** One entry of the model's structured output, before any checking. */
@@ -39,15 +46,14 @@ export function scoreFromPoints(
 
 /**
  * Lines the model's verdicts up with the key points by id. A point the model
- * skipped, or marked covered without quoting anything, counts as missed: a
- * claim with no evidence is not one the feedback can stand behind.
+ * skipped counts as missed. Whether a "covered" quote holds up is not decided
+ * here: grading.ts checks it against the transcript.
  */
 export function alignVerdicts(keyPoints: string[], verdicts: RawVerdict[]): KeyPointResult[] {
   return keyPoints.map((point, i) => {
     const verdict = verdicts.find((v) => v.id === i + 1);
-    const quote = verdict?.quote.trim() ?? "";
-    const covered = verdict?.verdict === "covered" && quote.length > 0;
-    return { point, covered, quote: covered ? quote : "" };
+    const covered = verdict?.verdict === "covered";
+    return { point, covered, quote: covered ? verdict.quote.trim() : "" };
   });
 }
 

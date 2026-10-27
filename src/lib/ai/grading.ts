@@ -1,6 +1,13 @@
 import type { Generate } from "./gemini.ts";
-import { gradingSchema, keyPointsSchema } from "./schemas.ts";
-import { alignVerdicts, scoreFromPoints, type AnswerGrade, type RawVerdict } from "./scoring.ts";
+import { findQuote } from "./quotes.ts";
+import { gradingSchema, keyPointsSchema, verdictsSchema } from "./schemas.ts";
+import {
+  alignVerdicts,
+  scoreFromPoints,
+  type AnswerGrade,
+  type KeyPointResult,
+  type RawVerdict,
+} from "./scoring.ts";
 
 /**
  * Grading against criteria, not a guessed number.
@@ -56,6 +63,8 @@ Model answer: ${modelAnswer}`,
   return keyPoints;
 }
 
+const QUOTE_RULE = `copy one contiguous passage of at least three of the candidate's words, exactly as they appear in the answer. Keep their wording even where it is ungrammatical: do not paraphrase, tidy it up, or join separate passages`;
+
 export async function gradeAnswer(
   generate: Generate,
   input: GradeInput,
@@ -79,7 +88,7 @@ Candidate's spoken answer: ${input.answer}
 The answer was transcribed from speech, so ignore punctuation, filler words and false starts.
 
 Return one entry per key point, using its number as the id:
-- quote: copy the candidate's words that make the point, exactly as they appear in the answer. Leave it empty if nothing they said makes it.
+- quote: ${QUOTE_RULE}. Leave it empty if nothing they said makes the point.
 - verdict: "covered" if the answer makes the point in substance, even informally or in other words. "missed" if it is absent, only gestured at with a buzzword, or wrong.
 
 Judge each point on its own. A strong answer elsewhere earns nothing for a point it did not make.
@@ -98,5 +107,77 @@ Then the advice: what to say instead. Write one or two sentences in the candidat
   });
 
   const points = alignVerdicts(keyPoints, raw.points);
-  return { ...scoreFromPoints(points), points, advice: raw.advice.trim() };
+  const verification = await verifyQuotes(generate, input, points, signal);
+  return { ...scoreFromPoints(points), points, advice: raw.advice.trim(), verification };
+}
+
+/**
+ * Every "covered" claim must be backed by words the candidate actually said.
+ *
+ * Each quote is looked up in the transcript. A quote that is there is replaced
+ * with the transcript's own wording, so what the candidate sees is what they
+ * said, not the model's tidied version. Claims whose quote is not there get
+ * one more look, all in a single call: either a real quote or "missed". A
+ * claim that still has no real quote is dropped, i.e. counted as missed.
+ *
+ * Mutates `points`; returns what happened, for the eval and the logs.
+ */
+async function verifyQuotes(
+  generate: Generate,
+  input: GradeInput,
+  points: KeyPointResult[],
+  signal?: AbortSignal
+): Promise<AnswerGrade["verification"]> {
+  const unbacked: number[] = [];
+  points.forEach((point, i) => {
+    if (!point.covered) return;
+    const found = findQuote(point.quote, input.answer);
+    if (found) point.quote = found;
+    else unbacked.push(i);
+  });
+  if (unbacked.length === 0) return { retried: 0, dropped: 0 };
+
+  const recheck = unbacked
+    .map((i) => `${i + 1}. ${points[i].point}\n   Quote given: "${points[i].quote}"`)
+    .join("\n");
+
+  let second: RawVerdict[] = [];
+  try {
+    ({ points: second } = await generate<{ points: RawVerdict[] }>({
+      parts: [
+        {
+          text: `You are re-checking part of an interview grade. The earlier grade said the candidate made the key points below, but the quotes it gave are not in the candidate's answer.
+
+Question: ${input.question}
+
+Key points to re-check:
+${recheck}
+
+Candidate's spoken answer: ${input.answer}
+
+For each point, using its number as the id: if the candidate really made it, ${QUOTE_RULE}, and mark it covered. If they did not make it, mark it missed and leave the quote empty.`,
+        },
+      ],
+      schema: verdictsSchema(unbacked.length),
+      thinkingBudget: 256,
+      signal,
+    }));
+  } catch (error) {
+    // Without the second look the claims stay unbacked, and unbacked claims
+    // are dropped. A grade that is too strict beats one that invents credit.
+    if (signal?.aborted) throw error;
+  }
+
+  let dropped = 0;
+  for (const i of unbacked) {
+    const verdict = second.find((v) => v.id === i + 1);
+    const found = verdict?.verdict === "covered" ? findQuote(verdict.quote, input.answer) : null;
+    if (found) {
+      points[i].quote = found;
+    } else {
+      points[i] = { ...points[i], covered: false, quote: "" };
+      dropped++;
+    }
+  }
+  return { retried: unbacked.length, dropped };
 }

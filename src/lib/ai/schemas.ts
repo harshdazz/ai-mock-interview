@@ -50,30 +50,33 @@ export const keyPointsSchema: Schema = {
  *
  * `quote` comes before `verdict` on purpose: the model has to find the
  * evidence in the transcript before it decides, rather than deciding and then
- * looking for something to justify it.
+ * looking for something to justify it. Code then checks every quote against
+ * the transcript (quotes.ts), so the evidence cannot be invented either.
  */
+const verdicts = (pointCount: number): Schema => ({
+  type: Type.ARRAY,
+  minItems: String(pointCount),
+  maxItems: String(pointCount),
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      id: { type: Type.INTEGER, description: "The key point's number." },
+      quote: {
+        type: Type.STRING,
+        description:
+          "One contiguous passage of at least three of the candidate's words that makes this point, copied exactly from the transcript, at most 30 words. Empty if nothing they said makes it.",
+      },
+      verdict: { type: Type.STRING, format: "enum", enum: ["covered", "missed"] },
+    },
+    required: ["id", "quote", "verdict"],
+    propertyOrdering: ["id", "quote", "verdict"],
+  },
+});
+
 export const gradingSchema = (pointCount: number): Schema => ({
   type: Type.OBJECT,
   properties: {
-    points: {
-      type: Type.ARRAY,
-      minItems: String(pointCount),
-      maxItems: String(pointCount),
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          id: { type: Type.INTEGER, description: "The key point's number." },
-          quote: {
-            type: Type.STRING,
-            description:
-              "The candidate's own words that make this point, copied exactly from the transcript, at most 25 words. Empty if nothing they said makes it.",
-          },
-          verdict: { type: Type.STRING, format: "enum", enum: ["covered", "missed"] },
-        },
-        required: ["id", "quote", "verdict"],
-        propertyOrdering: ["id", "quote", "verdict"],
-      },
-    },
+    points: verdicts(pointCount),
     advice: {
       type: Type.STRING,
       description:
@@ -82,4 +85,11 @@ export const gradingSchema = (pointCount: number): Schema => ({
   },
   required: ["points", "advice"],
   propertyOrdering: ["points", "advice"],
+});
+
+/** The second look at points whose quotes were not found. No advice needed. */
+export const verdictsSchema = (pointCount: number): Schema => ({
+  type: Type.OBJECT,
+  properties: { points: verdicts(pointCount) },
+  required: ["points"],
 });
