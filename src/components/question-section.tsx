@@ -5,15 +5,18 @@ import { TooltipButton } from "./tooltip-button";
 import { Volume2, VolumeX } from "lucide-react";
 import RecordAnswer from "./record-answer";
 import type { InterviewQuestion } from "@/types";
+import type { ResumeProfile } from "@/lib/ai/resume";
 
 const SUPPORTS_SPEECH =
   typeof window !== "undefined" && "speechSynthesis" in window;
 
 interface QuestionSectionProps {
   questions: InterviewQuestion[];
+  /** The CV the interview was generated from, for the CV claim check. */
+  resume?: ResumeProfile | null;
 }
 
-const QuestionSection = ({ questions }: QuestionSectionProps) => {
+const QuestionSection = ({ questions, resume }: QuestionSectionProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isWebCam, setIsWebCam] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -108,6 +111,7 @@ const QuestionSection = ({ questions }: QuestionSectionProps) => {
 
           <RecordAnswer
             question={tab}
+            resume={resume}
             isWebCam={isWebCam}
             setIsWebCam={setIsWebCam}
           />

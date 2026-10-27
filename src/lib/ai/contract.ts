@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { AssessInput, Assessment } from "./followup.ts";
 import type { GradeInput } from "./grading.ts";
 import type { AnswerGrade } from "./scoring.ts";
 import type { GeneratedQuestion } from "./interview.ts";
@@ -55,6 +56,11 @@ export const gradeRequest = z.object({
   answer: text(20000).min(1),
 }) satisfies z.ZodType<GradeInput>;
 
+/** A main answer: grade it, check the CV claim, and decide the follow-up. */
+export const assessRequest = gradeRequest.extend({
+  resume: resumeProfile.nullish(),
+}) satisfies z.ZodType<AssessInput>;
+
 export const resumeRequest = z.object({
   mimeType: z.enum(ACCEPTED_RESUME_TYPES),
   // base64 is 4/3 the size of the bytes it encodes.
@@ -64,7 +70,9 @@ export const resumeRequest = z.object({
 /** Request and response for each worker route, keyed by its path. */
 export interface AiTasks {
   questions: { request: z.input<typeof questionsRequest>; response: GeneratedQuestion[] };
+  /** The follow-up answer: graded together with the main one, no new follow-up. */
   grade: { request: z.input<typeof gradeRequest>; response: AnswerGrade };
+  assess: { request: z.input<typeof assessRequest>; response: Assessment };
   resume: { request: z.input<typeof resumeRequest>; response: ResumeProfile };
 }
 

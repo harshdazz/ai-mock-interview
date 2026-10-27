@@ -1,10 +1,12 @@
 import type { z } from "zod";
 import {
+  assessRequest,
   gradeRequest,
   questionsRequest,
   resumeRequest,
   type AiTask,
 } from "../src/lib/ai/contract.ts";
+import { assessAnswer } from "../src/lib/ai/followup.ts";
 import { AiError, type AiErrorBody, type AiFailureKind } from "../src/lib/ai/errors.ts";
 import { createGemini, type Generate } from "../src/lib/ai/gemini.ts";
 import { gradeAnswer } from "../src/lib/ai/grading.ts";
@@ -43,6 +45,7 @@ const ROUTES: Record<AiTask, Route<z.ZodType, unknown>> = {
     generateQuestions(generate, brief, resume, signal)
   ),
   grade: route(gradeRequest, (generate, input, signal) => gradeAnswer(generate, input, signal)),
+  assess: route(assessRequest, (generate, input, signal) => assessAnswer(generate, input, signal)),
   resume: route(resumeRequest, (generate, input, signal) =>
     extractResume(generate, input, signal)
   ),

@@ -113,6 +113,53 @@ export const supportSchema = (pairCount: number): Schema => ({
   required: ["checks"],
 });
 
+/**
+ * Did the answer back up what the CV claims? The claim is identified first,
+ * then the evidence, then the verdict, so each step builds on the last.
+ */
+export const cvCheckSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    claim: {
+      type: Type.STRING,
+      description:
+        "The one CV claim this question is about, copied from the CV. Empty if the question is not about anything in the CV.",
+    },
+    quote: {
+      type: Type.STRING,
+      description:
+        "One contiguous passage of at least three of the candidate's words that backs the claim, copied exactly. Empty if none.",
+    },
+    verdict: {
+      type: Type.STRING,
+      format: "enum",
+      enum: ["backed", "partly", "not_backed", "not_applicable"],
+    },
+    gap: {
+      type: Type.STRING,
+      description:
+        "Under 15 words: what about the claim is still unproven. Empty when backed or not applicable.",
+    },
+  },
+  required: ["claim", "quote", "verdict", "gap"],
+  propertyOrdering: ["claim", "quote", "verdict", "gap"],
+};
+
+/** The interviewer's one follow-up. The gap is chosen before the question is written. */
+export const followUpSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    target: { type: Type.STRING, description: "The gap being probed, copied from the list." },
+    reason: { type: Type.STRING, format: "enum", enum: ["missed_point", "cv_claim"] },
+    question: {
+      type: Type.STRING,
+      description: "One question, as an interviewer would say it, under 30 words.",
+    },
+  },
+  required: ["target", "reason", "question"],
+  propertyOrdering: ["target", "reason", "question"],
+};
+
 /** The second look at points whose quotes were not found. No advice needed. */
 export const verdictsSchema = (pointCount: number): Schema => ({
   type: Type.OBJECT,

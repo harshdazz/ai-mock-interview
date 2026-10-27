@@ -80,7 +80,7 @@ const { interviewId } = useParams<{ interviewId: string }>();
         </Alert>
 
        {interview?.questions && interview.questions.length > 0 && (
-        <QuestionSection questions={interview.questions} />
+        <QuestionSection questions={interview.questions} resume={interview.resume} />
       )}
 
     </div>

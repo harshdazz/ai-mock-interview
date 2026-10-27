@@ -70,6 +70,11 @@ export const generateQuestions = (
   signal?: AbortSignal
 ) => call("questions", { brief, resume }, signal);
 
+/** A main answer: the grade, the CV claim check and at most one follow-up. */
+export const assessAnswer = (input: AiTasks["assess"]["request"], signal?: AbortSignal) =>
+  call("assess", input, signal);
+
+/** The main answer and the follow-up answer together, graded as one. */
 export const gradeAnswer = (input: AiTasks["grade"]["request"], signal?: AbortSignal) =>
   call("grade", input, signal);
 

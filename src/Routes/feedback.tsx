@@ -188,6 +188,25 @@ export const Feedback = () => {
                     </p>
                   </section>
 
+                  {feed.followUp && (
+                    <section className="flex flex-col gap-2">
+                      <h3 className="text-sm font-medium text-ink-muted">
+                        The follow-up
+                      </h3>
+                      <p className="text-pretty text-[15px] font-medium leading-relaxed text-ink">
+                        {feed.followUp.question}
+                      </p>
+                      <p className="text-pretty text-[15px] leading-relaxed text-ink">
+                        {feed.followUp.answer || "Skipped."}
+                      </p>
+                      {feed.followUp.answer && (
+                        <p className="tabular text-sm text-ink-faint">
+                          Your first answer on its own scored {feed.followUp.scoreBefore}/10.
+                        </p>
+                      )}
+                    </section>
+                  )}
+
                   <section className="flex flex-col gap-2">
                     <h3 className="text-sm font-medium text-ink-muted">
                       A strong answer

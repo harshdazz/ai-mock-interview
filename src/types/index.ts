@@ -51,6 +51,10 @@ export interface UserAnswer {
   /** Per-key-point result. Absent on answers graded before criteria scoring. */
   criteria?: KeyPointResult[];
   advice?: string;
+  /** The interviewer's follow-up, when there was one. `rating` then counts
+   *  both answers; `scoreBefore` is the main answer alone. An empty `answer`
+   *  means it was skipped. */
+  followUp?: { question: string; answer: string; scoreBefore: number };
   userId: string;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
